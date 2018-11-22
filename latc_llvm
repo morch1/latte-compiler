@@ -1,0 +1,15 @@
+#!/bin/bash
+
+if [[ $# -ne 1 ]]; then
+    echo "usage: $0 (source.ins)"
+    exit 1
+fi
+
+EXEC_DIR=$(dirname "${BASH_SOURCE[0]}")
+SOURCE="$1"
+OUTPUT="${SOURCE%.ins}"
+OUTPUT_DIR="$(dirname ${OUTPUT})"
+CLASSNAME="$(basename -- ${OUTPUT})"
+"$EXEC_DIR/venv/bin/python" "$EXEC_DIR/src/compiler.py" <"$SOURCE" >"$OUTPUT.ll"
+llvm-as -o "$OUTPUT.tmp.bc" "$OUTPUT.ll"
+llvm-link -o "$OUTPUT.bc" "$OUTPUT.tmp.bc" "$EXEC_DIR/lib/runtime.bc"
