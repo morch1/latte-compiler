@@ -4,7 +4,7 @@ from ins_abs import StmtAssVar, StmtExp, ExpBinOp, ExpVar, StmtList
 
 def check(t, env):
     if isinstance(t, StmtList):
-        for s in t.stmts:
+        for s in t.items:
             env = check(s, env)
         return env
     elif isinstance(t, StmtAssVar):
@@ -18,8 +18,8 @@ def check(t, env):
         check(t.exp2, env)
         return env
     elif isinstance(t, ExpVar):
-        if t.var not in env:
-            raise UndefinedVariable(t.lineno, t.var)
+        # if t.var not in env:
+        #     raise UndefinedVariable(t.lineno, t.var)
         return env
     else:
         return env

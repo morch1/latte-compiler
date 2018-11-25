@@ -1,6 +1,6 @@
 import sys
 # import backend
-from ins_par import parse
+from ins_parse import parse
 from ins_check import check
 from errors import CompilerError
 
