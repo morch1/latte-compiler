@@ -1,14 +1,38 @@
 import ply.yacc as yacc
 from ins_lex import lexer, tokens
 from errors import ParsingError
-from ins_abs import StmtExp, LhsVar, ExpBinOp, ExpUnOp, ExpVar, StmtAssVar, Block, StmtDecl, Item, ItemInit, \
+from ins_abs import StmtExp, LhsVar, ExpBinOp, ExpUnOp, ExpVar, StmtAssVar, StmtBlock, StmtDecl, Item, ItemInit, \
     StmtList, ItemList, StmtEmpty, ExpInt, ExpString, ExpBool, ExpList, ExpApp, StmtInc, StmtDec, StmtReturn, \
-    StmtVoidReturn, StmtIf, StmtIfElse, StmtWhile
+    StmtVoidReturn, StmtIf, StmtIfElse, StmtWhile, ArgList, TopDefList, TopDef, Arg, Program
 
 
 def p_program(p):
-    """program : stmts"""
-    p[0] = p[1]
+    """program : topdefs"""
+    p[0] = Program(p.lexer.lineno, p[1])
+
+def p_topdefs(p):
+    """topdefs : topdef topdefs"""
+    p[0] = TopDefList(p.lexer.lineno, [p[1]] + p[2].items)
+
+def p_topdefs_empty(p):
+    """topdefs : """
+    p[0] = TopDefList(p.lexer.lineno, [])
+
+def p_topdef(p):
+    """topdef : type id lparen args rparen block"""
+    p[0] = TopDef(p.lexer.lineno, p[1], p[2], p[4], p[6])
+
+def p_args(p):
+    """args : arg comma args"""
+    p[0] = ArgList(p.lexer.lineno, [p[1]] + p[2].items)
+
+def p_args_empty(p):
+    """args : """
+    p[0] = ArgList(p.lexer.lineno, [])
+
+def p_arg(p):
+    """arg : type id"""
+    p[0] = Arg(p.lexer.lineno, p[1], p[2])
 
 
 def p_stmts(p):
@@ -20,8 +44,8 @@ def p_stmts_empty(p):
     p[0] = StmtList(p.lexer.lineno, [])
 
 def p_block(p):
-    """block : lbracket stmts rbracket"""
-    p[0] = Block(p.lexer.lineno, p[2])
+    """block : lbrace stmts rbrace"""
+    p[0] = StmtBlock(p.lexer.lineno, p[2])
 
 def p_stmt_empty(p):
     """stmt : semi"""
@@ -191,7 +215,6 @@ def p_error(p):
 
 
 parser = yacc.yacc(debug=False)
-
 
 def parse(text):
     return parser.parse(text, lexer=lexer)

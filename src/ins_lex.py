@@ -13,7 +13,7 @@ tokens = reserved + (
     # assignment
     "equals", "plusplus", "minusminus",
     # delimeters
-    "lparen", "rparen", "lbracket", "rbracket",
+    "lparen", "rparen", "lbrace", "rbrace",
     "semi", "comma",
 )
 
@@ -45,8 +45,8 @@ t_minusminus = r'--'
 
 t_lparen = r'\('
 t_rparen = r'\)'
-t_lbracket = r'\{'
-t_rbracket = r'\}'
+t_lbrace = r'\{'
+t_rbrace = r'\}'
 t_semi = r';'
 t_comma = r','
 
