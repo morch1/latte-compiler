@@ -1,7 +1,6 @@
 import sys
 # import backend
-from ins_parse import parse
-from ins_check import check
+from parse import parse
 from errors import CompilerError
 
 
@@ -11,7 +10,7 @@ def main():
 
     try:
         tree = parse(text)
-        check(tree, [])
+        # tree.check({}, {})
     except CompilerError as err:
         print(f'ERROR\n{err}')
         exit(1)

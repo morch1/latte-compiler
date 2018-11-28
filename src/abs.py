@@ -1,6 +1,14 @@
+from errors import TypeMismatchError
+
+
 class Parsed:
     def __init__(self, lineno):
         self.lineno = lineno
+
+class Typed(Parsed):
+    def __init__(self, lineno):
+        super().__init__(lineno)
+        self.type = None
 
 class List(Parsed):
     def __init__(self, lineno, items):
@@ -11,7 +19,7 @@ class List(Parsed):
         return ', '.join(map(lambda s: str(s), self.items))
 
 
-class Exp(Parsed):
+class Exp(Typed):
     pass
 
 class ExpUnOp(Exp):
@@ -32,9 +40,6 @@ class ExpBinOp(Exp):
 
     def __str__(self):
         return f'({self.exp1} {self.op} {self.exp2})'
-
-    def commutative(self):
-        return self.op in ['+', '*']
 
 class ExpVar(Exp):
     def __init__(self, lineno, ident):

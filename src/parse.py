@@ -1,9 +1,11 @@
 import ply.yacc as yacc
-from ins_lex import lexer, tokens
-from errors import ParsingError
-from ins_abs import StmtExp, LhsVar, ExpBinOp, ExpUnOp, ExpVar, StmtAssVar, StmtBlock, StmtDecl, Item, ItemInit, \
+
+from lexer import lexer, tokens
+from errors import ParsingError, InvalidTypeError
+from abs import StmtExp, LhsVar, ExpBinOp, ExpUnOp, ExpVar, StmtAssVar, StmtBlock, StmtDecl, Item, ItemInit, \
     StmtList, ItemList, StmtEmpty, ExpInt, ExpString, ExpBool, ExpList, ExpApp, StmtInc, StmtDec, StmtReturn, \
     StmtVoidReturn, StmtIf, StmtIfElse, StmtWhile, ArgList, TopDefList, TopDef, Arg, Program
+from ltypes import Type
 
 
 def p_program(p):
@@ -113,11 +115,11 @@ def p_stmt_exp(p):
 
 
 def p_type(p):
-    """type : int
-            | string
-            | boolean
-            | void"""
-    p[0] = p[1]
+    """type : id"""
+    try:
+        p[0] = Type.get_by_name(p[1])
+    except KeyError:
+        raise InvalidTypeError(p.lexer.lineno, p[1])
 
 
 def p_exps(p):

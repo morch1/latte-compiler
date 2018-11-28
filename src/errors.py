@@ -1,34 +1,39 @@
 class CompilerError(Exception):
+    msg = 'internal error'
+
     def __init__(self, line):
         self.line = line
 
     def __str__(self):
-        return f"error (line {self.line})"
+        return self.msg + (f" (line {self.line})" if self.line else "")
 
 
-class IllegalCharacter(CompilerError):
+class IllegalCharacterError(CompilerError):
     def __init__(self, line, char):
-        super(IllegalCharacter, self).__init__(line)
-        self.char = char
-
-    def __str__(self):
-        return f"illegal character: {self.char} (line {self.line})"
+        super().__init__(line)
+        self.msg = f'invalid character: {char}'
 
 
 class ParsingError(CompilerError):
-    def __str__(self):
-        return "parsing failed" + (f" (line {self.line})" if self.line else "")
+    msg = 'parsing failed'
 
 
-class UndefinedVariable(CompilerError):
-    def __init__(self, line, variable):
-        super(UndefinedVariable, self).__init__(line)
-        self.variable = variable
-
-    def __str__(self):
-        return f"undefined variable: {self.variable} (line {self.line})"
+class TypeMismatchError(CompilerError):
+    msg = 'type mismatch'
 
 
-class NotImplemented(CompilerError):
-    def __str__(self):
-        return f"not implemented (line {self.line})"
+class InvalidTypeError(CompilerError):
+    def __init__(self, line, name):
+        super().__init__(line)
+        self.msg = f'invalid type: {name}'
+
+
+class UndefinedVariableError(CompilerError):
+    def __init__(self, line, ident):
+        super().__init__(line)
+        self.msg = f'undefined variable: {ident}'
+
+
+# noinspection PyShadowingBuiltins
+class NotImplementedError(CompilerError):
+    msg = 'not implemented'
