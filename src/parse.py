@@ -1,6 +1,6 @@
 import ply.yacc as yacc
 
-from lexer import lexer, tokens
+from lexer import lexer, tokens, precedence
 from errors import ParsingError, InvalidTypeError
 from abs import StmtExp, LhsVar, ExpBinOp, ExpUnOp, ExpVar, StmtAssVar, StmtBlock, StmtDecl, Item, ItemInit, \
     StmtList, ItemList, StmtEmpty, ExpInt, ExpString, ExpBool, ExpList, ExpApp, StmtInc, StmtDec, StmtReturn, \
@@ -116,10 +116,7 @@ def p_stmt_exp(p):
 
 def p_type(p):
     """type : id"""
-    try:
-        p[0] = Type.get_by_name(p[1])
-    except KeyError:
-        raise InvalidTypeError(p.lexer.lineno, p[1])
+    p[0] = Type.get_by_name(p[1], p.lexer.lineno)
 
 
 def p_exps(p):
@@ -134,82 +131,47 @@ def p_exps_empty(p):
     """exps : """
     p[0] = ExpList(p.lexer.lineno, [])
 
-def p_exp_or(p):
-    """exp : exp1 or exp"""
+def p_exp_binop(p):
+    """exp : exp or exp
+           | exp and exp
+           | exp lt exp
+           | exp le exp
+           | exp gt exp
+           | exp ge exp
+           | exp eq exp
+           | exp ne exp
+           | exp plus exp
+           | exp minus exp
+           | exp times exp
+           | exp divide exp
+           | exp mod exp """
     p[0] = ExpBinOp(p.lexer.lineno, p[2], p[1], p[3])
 
-def p_exp_and(p):
-    """exp1 : exp2 and exp1"""
-    p[0] = ExpBinOp(p.lexer.lineno, p[2], p[1], p[3])
-
-def p_exp_rel(p):
-    """exp2 : exp2 lt exp3
-            | exp2 le exp3
-            | exp2 gt exp3
-            | exp2 ge exp3
-            | exp2 eq exp3
-            | exp2 ne exp3"""
-    p[0] = ExpBinOp(p.lexer.lineno, p[2], p[1], p[3])
-
-def p_exp_add(p):
-    """exp3 : exp3 plus exp4
-            | exp3 minus exp4"""
-    p[0] = ExpBinOp(p.lexer.lineno, p[2], p[1], p[3])
-
-def p_exp_mul(p):
-    """exp4 : exp4 times exp5
-            | exp4 divide exp5
-            | exp4 mod exp5"""
-    p[0] = ExpBinOp(p.lexer.lineno, p[2], p[1], p[3])
-
-def p_exp_neg(p):
-    """exp5 : minus exp6
-            | not exp6"""
+def p_exp_unop(p):
+    """exp : minus exp %prec uminus
+           | not exp"""
     p[0] = ExpUnOp(p.lexer.lineno, p[1], p[2])
 
 def p_exp_id(p):
-    """exp6 : id"""
+    """exp : id"""
     p[0] = ExpVar(p.lexer.lineno, p[1])
 
 def p_exp_intconst(p):
-    """exp6 : intconst"""
+    """exp : intconst"""
     p[0] = ExpInt(p.lexer.lineno, int(p[1]))
 
 def p_exp_stringconst(p):
-    """exp6 : stringconst"""
+    """exp : stringconst"""
     p[0] = ExpString(p.lexer.lineno, p[1][1:-1])
 
 def p_exp_boolconst(p):
-    """exp6 : true
-            | false"""
+    """exp : true
+           | false"""
     p[0] = ExpBool(p.lexer.lineno, p[1] == "true")
 
 def p_exp_app(p):
-    """exp6 : id lparen exps rparen"""
+    """exp : id lparen exps rparen"""
     p[0] = ExpApp(p.lexer.lineno, p[1], p[3])
-
-
-def p_exp0(p):
-    """exp : exp1"""
-    p[0] = p[1]
-def p_exp1(p):
-    """exp1 : exp2"""
-    p[0] = p[1]
-def p_exp2(p):
-    """exp2 : exp3"""
-    p[0] = p[1]
-def p_exp3(p):
-    """exp3 : exp4"""
-    p[0] = p[1]
-def p_exp4(p):
-    """exp4 : exp5"""
-    p[0] = p[1]
-def p_exp5(p):
-    """exp5 : exp6"""
-    p[0] = p[1]
-def p_exp6(p):
-    """exp6 : lparen exp rparen"""
-    p[0] = p[2]
 
 
 def p_error(p):

@@ -1,3 +1,5 @@
+from errors import InvalidTypeError
+
 
 class Type:
     _type_map = {}
@@ -10,8 +12,11 @@ class Type:
         return self.name
 
     @classmethod
-    def get_by_name(cls, name):
-        return cls._type_map[name]
+    def get_by_name(cls, name, lineno=None):
+        try:
+            return cls._type_map[name]
+        except KeyError:
+            raise InvalidTypeError(lineno, name)
 
 
 TYPE_INT = Type('int')

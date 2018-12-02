@@ -44,6 +44,15 @@ t_ge = BINOP_GE.op_regex()
 t_eq = BINOP_INT_EQ.op_regex()
 t_ne = BINOP_INT_NE.op_regex()
 
+precedence = (
+    ('right', 'or'),
+    ('right', 'and'),
+    ('left', 'lt', 'le', 'gt', 'ge', 'eq', 'ne'),
+    ('left', 'plus', 'minus'),
+    ('left', 'times', 'divide', 'mod'),
+    ('right', 'not', 'uminus'),
+)
+
 t_equals = r'\='
 t_plusplus = r'\+\+'
 t_minusminus = r'\-\-'
