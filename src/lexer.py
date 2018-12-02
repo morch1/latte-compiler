@@ -27,8 +27,7 @@ def t_newline(t):
     r"""\n+"""
     t.lexer.lineno += len(t.value)
 
-# TODO: dont hardcode operators, precendence
-# http://www.dabeaz.com/ply/ply.html#ply_nn27
+# TODO: dont hardcode operators
 t_plus = BINOP_PLUS.op_regex()
 t_minus = BINOP_MINUS.op_regex()
 t_times = BINOP_TIMES.op_regex()

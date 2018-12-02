@@ -1,11 +1,12 @@
 import ply.yacc as yacc
 
 from lexer import lexer, tokens, precedence
-from errors import ParsingError, InvalidTypeError
+from errors import ParsingError, InvalidTypeError, InvalidOperatorError
 from abs import StmtExp, LhsVar, ExpBinOp, ExpUnOp, ExpVar, StmtAssVar, StmtBlock, StmtDecl, Item, ItemInit, \
     StmtList, ItemList, StmtEmpty, ExpInt, ExpString, ExpBool, ExpList, ExpApp, StmtInc, StmtDec, StmtReturn, \
     StmtVoidReturn, StmtIf, StmtIfElse, StmtWhile, ArgList, TopDefList, TopDef, Arg, Program
 from ltypes import Type
+from operators import Operator, BinOp, UnOp
 
 
 def p_program(p):
@@ -26,7 +27,11 @@ def p_topdef(p):
 
 def p_args(p):
     """args : arg comma args"""
-    p[0] = ArgList(p.lexer.lineno, [p[1]] + p[2].items)
+    p[0] = ArgList(p.lexer.lineno, [p[1]] + p[3].items)
+
+def p_args_one(p):
+    """args : arg"""
+    p[0] = ArgList(p.lexer.lineno, [p[1]])
 
 def p_args_empty(p):
     """args : """
@@ -116,7 +121,11 @@ def p_stmt_exp(p):
 
 def p_type(p):
     """type : id"""
-    p[0] = Type.get_by_name(p[1], p.lexer.lineno)
+    try:
+        p[0] = Type.get_by_name(p[1])
+    except InvalidTypeError as ex:
+        ex.line = p.lexer.lineno
+        raise ex
 
 
 def p_exps(p):
@@ -145,12 +154,22 @@ def p_exp_binop(p):
            | exp times exp
            | exp divide exp
            | exp mod exp """
-    p[0] = ExpBinOp(p.lexer.lineno, p[2], p[1], p[3])
+    try:
+        op = BinOp.get_by_name(p[2])
+    except InvalidOperatorError as ex:
+        ex.line = p.lexer.lineno
+        raise ex
+    p[0] = ExpBinOp(p.lexer.lineno, op, p[1], p[3])
 
 def p_exp_unop(p):
     """exp : minus exp %prec uminus
            | not exp"""
-    p[0] = ExpUnOp(p.lexer.lineno, p[1], p[2])
+    try:
+        op = UnOp.get_by_name(p[1])
+    except InvalidOperatorError as ex:
+        ex.line = p.lexer.lineno
+        raise ex
+    p[0] = ExpUnOp(p.lexer.lineno, op, p[2])
 
 def p_exp_id(p):
     """exp : id"""

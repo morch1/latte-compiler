@@ -1,4 +1,5 @@
 import re
+from errors import InvalidOperatorError
 from ltypes import TYPE_INT, TYPE_BOOL, TYPE_STRING
 
 
@@ -8,26 +9,33 @@ class Operator:
     def __init__(self, op, val_type):
         self.op = op
         self.val_type = val_type
-        Operator._op_map[op] = self
+        self.__class__._op_map[op] = self
 
     def __str__(self):
         return self.op
 
+    @classmethod
+    def get_by_name(cls, op):
+        try:
+            return cls._op_map[op]
+        except KeyError:
+            raise InvalidOperatorError(None, op)
+
     def op_regex(self):
         return re.compile(re.escape(self.op)).pattern
 
-    @classmethod
-    def get_by_name(cls, op):
-        return cls._op_map[op]
-
 
 class UnOp(Operator):
+    _op_map = {}
+
     def __init__(self, op, val_type, arg_type):
         super().__init__(op, val_type)
         self.arg_type = arg_type
 
 
 class BinOp(Operator):
+    _op_map = {}
+
     def __init__(self, op, val_type, arg1_type, arg2_type):
         super().__init__(op, val_type)
         self.arg1_type = arg1_type

@@ -10,7 +10,7 @@ def main():
 
     try:
         tree = parse(text)
-        # tree.check({}, {})
+        tree.check({}, {})
     except CompilerError as err:
         print(f'ERROR\n{err}')
         exit(1)

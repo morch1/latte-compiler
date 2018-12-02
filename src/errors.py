@@ -28,6 +28,30 @@ class InvalidTypeError(CompilerError):
         self.msg = f'invalid type: {name}'
 
 
+class InvalidOperatorError(CompilerError):
+    def __init__(self, line, op):
+        super().__init__(line)
+        self.msg = f'invalid operator: {op}'
+
+
+class DuplicateFunctionNameError(CompilerError):
+    def __init__(self, line, name):
+        super().__init__(line)
+        self.msg = f'duplicate function name: {name}'
+
+class InvalidMainFunctionError(CompilerError):
+    msg = 'invalid main() definition'
+
+
+class MissingMainFunctionError(CompilerError):
+    msg = 'missing main() definition'
+
+class DuplicateVariableNameError(CompilerError):
+    def __init__(self, line, name):
+        super().__init__(line)
+        self.msg = f'duplicate variable name: {name}'
+
+
 class UndefinedVariableError(CompilerError):
     def __init__(self, line, ident):
         super().__init__(line)

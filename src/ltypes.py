@@ -12,11 +12,11 @@ class Type:
         return self.name
 
     @classmethod
-    def get_by_name(cls, name, lineno=None):
+    def get_by_name(cls, name):
         try:
             return cls._type_map[name]
         except KeyError:
-            raise InvalidTypeError(lineno, name)
+            raise InvalidTypeError(None, name)
 
 
 TYPE_INT = Type('int')
