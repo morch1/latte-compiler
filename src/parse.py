@@ -2,11 +2,11 @@ import ply.yacc as yacc
 
 from lexer import lexer, tokens, precedence
 from errors import ParsingError, InvalidTypeError, InvalidOperatorError
-from abs import StmtExp, LhsVar, ExpBinOp, ExpUnOp, ExpVar, StmtAssVar, StmtBlock, StmtDecl, Item, ItemInit, \
-    StmtList, ItemList, StmtEmpty, ExpInt, ExpString, ExpBool, ExpList, ExpApp, StmtInc, StmtDec, StmtReturn, \
-    StmtVoidReturn, StmtIf, StmtIfElse, StmtWhile, ArgList, TopDefList, TopDef, Arg, Program
+from abs import Stmt, StmtExp, LhsVar, ExpBinOp, ExpUnOp, ExpVar, StmtAssVar, StmtBlock, StmtDecl, VarDecl, VarDeclInit, \
+    Stmts, VarDecls, ExpIntConst, ExpStringConst, ExpBoolConst, Exps, ExpApp, StmtInc, StmtDec, StmtReturn, \
+    StmtVoidReturn, StmtIf, StmtIfElse, StmtWhile, Args, TopDefs, TopDef, Arg, Program
 from ltypes import Type
-from operators import Operator, BinOp, UnOp
+from operators import Operator
 
 
 def p_program(p):
@@ -15,11 +15,11 @@ def p_program(p):
 
 def p_topdefs(p):
     """topdefs : topdef topdefs"""
-    p[0] = TopDefList(p.lexer.lineno, [p[1]] + p[2].items)
+    p[0] = TopDefs(p.lexer.lineno, [p[1]] + p[2].items)
 
 def p_topdefs_empty(p):
     """topdefs : """
-    p[0] = TopDefList(p.lexer.lineno, [])
+    p[0] = TopDefs(p.lexer.lineno, [])
 
 def p_topdef(p):
     """topdef : type id lparen args rparen block"""
@@ -27,15 +27,15 @@ def p_topdef(p):
 
 def p_args(p):
     """args : arg comma args"""
-    p[0] = ArgList(p.lexer.lineno, [p[1]] + p[3].items)
+    p[0] = Args(p.lexer.lineno, [p[1]] + p[3].items)
 
 def p_args_one(p):
     """args : arg"""
-    p[0] = ArgList(p.lexer.lineno, [p[1]])
+    p[0] = Args(p.lexer.lineno, [p[1]])
 
 def p_args_empty(p):
     """args : """
-    p[0] = ArgList(p.lexer.lineno, [])
+    p[0] = Args(p.lexer.lineno, [])
 
 def p_arg(p):
     """arg : type id"""
@@ -44,11 +44,11 @@ def p_arg(p):
 
 def p_stmts(p):
     """stmts : stmt stmts"""
-    p[0] = StmtList(p.lexer.lineno, [p[1]] + p[2].items)
+    p[0] = Stmts(p.lexer.lineno, [p[1]] + p[2].items)
 
 def p_stmts_empty(p):
     """stmts : """
-    p[0] = StmtList(p.lexer.lineno, [])
+    p[0] = Stmts(p.lexer.lineno, [])
 
 def p_block(p):
     """block : lbrace stmts rbrace"""
@@ -56,7 +56,7 @@ def p_block(p):
 
 def p_stmt_empty(p):
     """stmt : semi"""
-    p[0] = StmtEmpty(p.lexer.lineno)
+    p[0] = Stmt(p.lexer.lineno)
 
 def p_stmt_block(p):
     """stmt : block"""
@@ -68,19 +68,19 @@ def p_stmt_decl(p):
 
 def p_items(p):
     """items : item comma items """
-    p[0] = ItemList(p.lexer.lineno, [p[1]] + p[3].items)
+    p[0] = VarDecls(p.lexer.lineno, [p[1]] + p[3].items)
 
 def p_items_one(p):
     """items : item"""
-    p[0] = ItemList(p.lexer.lineno, [p[1]])
+    p[0] = VarDecls(p.lexer.lineno, [p[1]])
 
 def p_item(p):
     """item : id"""
-    p[0] = Item(p.lexer.lineno, p[1])
+    p[0] = VarDecl(p.lexer.lineno, p[1])
 
 def p_item_init(p):
     """item : id equals exp"""
-    p[0] = ItemInit(p.lexer.lineno, p[1], p[3])
+    p[0] = VarDeclInit(p.lexer.lineno, p[1], p[3])
 
 def p_stmt_ass(p):
     """stmt : id equals exp semi"""
@@ -130,15 +130,15 @@ def p_type(p):
 
 def p_exps(p):
     """exps : exp comma exps """
-    p[0] = ExpList(p.lexer.lineno, [p[1]] + p[3].items)
+    p[0] = Exps(p.lexer.lineno, [p[1]] + p[3].items)
 
 def p_exps_one(p):
     """exps : exp"""
-    p[0] = ExpList(p.lexer.lineno, [p[1]])
+    p[0] = Exps(p.lexer.lineno, [p[1]])
 
 def p_exps_empty(p):
     """exps : """
-    p[0] = ExpList(p.lexer.lineno, [])
+    p[0] = Exps(p.lexer.lineno, [])
 
 def p_exp_binop(p):
     """exp : exp or exp
@@ -155,7 +155,7 @@ def p_exp_binop(p):
            | exp divide exp
            | exp mod exp """
     try:
-        op = BinOp.get_by_name(p[2])
+        op = Operator.get_by_name(p[2])
     except InvalidOperatorError as ex:
         ex.line = p.lexer.lineno
         raise ex
@@ -165,7 +165,7 @@ def p_exp_unop(p):
     """exp : minus exp %prec uminus
            | not exp"""
     try:
-        op = UnOp.get_by_name(p[1])
+        op = Operator.get_by_name(p[1])
     except InvalidOperatorError as ex:
         ex.line = p.lexer.lineno
         raise ex
@@ -177,16 +177,16 @@ def p_exp_id(p):
 
 def p_exp_intconst(p):
     """exp : intconst"""
-    p[0] = ExpInt(p.lexer.lineno, int(p[1]))
+    p[0] = ExpIntConst(p.lexer.lineno, int(p[1]))
 
 def p_exp_stringconst(p):
     """exp : stringconst"""
-    p[0] = ExpString(p.lexer.lineno, p[1][1:-1])
+    p[0] = ExpStringConst(p.lexer.lineno, p[1][1:-1])
 
 def p_exp_boolconst(p):
     """exp : true
            | false"""
-    p[0] = ExpBool(p.lexer.lineno, p[1] == "true")
+    p[0] = ExpBoolConst(p.lexer.lineno, p[1] == "true")
 
 def p_exp_app(p):
     """exp : id lparen exps rparen"""

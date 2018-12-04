@@ -1,18 +1,25 @@
 import re
-from errors import InvalidOperatorError
+from errors import InvalidOperatorError, TypeMismatchError
 from ltypes import TYPE_INT, TYPE_BOOL, TYPE_STRING
 
 
 class Operator:
     _op_map = {}
+    # todo: precedence_table
 
-    def __init__(self, op, val_type):
+    def __init__(self, op, allowed_types):
         self.op = op
-        self.val_type = val_type
+        self.allowed_types = allowed_types
         self.__class__._op_map[op] = self
 
     def __str__(self):
         return self.op
+
+    def check(self, *types):
+        try:
+            return self.allowed_types[types]
+        except KeyError:
+            raise TypeMismatchError(None)
 
     @classmethod
     def get_by_name(cls, op):
@@ -25,39 +32,51 @@ class Operator:
         return re.compile(re.escape(self.op)).pattern
 
 
-class UnOp(Operator):
-    _op_map = {}
-
-    def __init__(self, op, val_type, arg_type):
-        super().__init__(op, val_type)
-        self.arg_type = arg_type
-
-
-class BinOp(Operator):
-    _op_map = {}
-
-    def __init__(self, op, val_type, arg1_type, arg2_type):
-        super().__init__(op, val_type)
-        self.arg1_type = arg1_type
-        self.arg2_type = arg2_type
-
-
-BINOP_PLUS = BinOp('+', TYPE_INT, TYPE_INT, TYPE_INT)
-BINOP_MINUS = BinOp('-', TYPE_INT, TYPE_INT, TYPE_INT)
-UNOP_MINUS = UnOp(BINOP_MINUS.op, TYPE_INT, TYPE_INT)
-BINOP_TIMES = BinOp('*', TYPE_INT, TYPE_INT, TYPE_INT)
-BINOP_DIV = BinOp('/', TYPE_INT, TYPE_INT, TYPE_INT)
-BINOP_MOD = BinOp('%', TYPE_INT, TYPE_INT, TYPE_INT)
-UNOP_NOT = UnOp('!', TYPE_BOOL, TYPE_BOOL)
-BINOP_OR = BinOp('||', TYPE_BOOL, TYPE_BOOL, TYPE_BOOL)
-BINOP_AND = BinOp('&&', TYPE_BOOL, TYPE_BOOL, TYPE_BOOL)
-BINOP_LT = BinOp('<', TYPE_BOOL, TYPE_INT, TYPE_INT)
-BINOP_LE = BinOp('<=', TYPE_BOOL, TYPE_INT, TYPE_INT)
-BINOP_GT = BinOp('>', TYPE_BOOL, TYPE_INT, TYPE_INT)
-BINOP_GE = BinOp('>=', TYPE_BOOL, TYPE_INT, TYPE_INT)
-BINOP_INT_EQ = BinOp('==', TYPE_BOOL, TYPE_INT, TYPE_INT)
-BINOP_BOOL_EQ = BinOp(BINOP_INT_EQ.op, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL)
-BINOP_STRING_EQ = BinOp(BINOP_INT_EQ.op, TYPE_BOOL, TYPE_STRING, TYPE_STRING)
-BINOP_INT_NE = BinOp('!=', TYPE_BOOL, TYPE_INT, TYPE_INT)
-BINOP_BOOL_NE = BinOp(BINOP_INT_NE.op, TYPE_BOOL, TYPE_BOOL, TYPE_BOOL)
-BINOP_STRING_NE = BinOp(BINOP_INT_NE.op, TYPE_BOOL, TYPE_STRING, TYPE_STRING)
+OP_PLUS = Operator('+', {
+    (TYPE_INT, TYPE_INT): TYPE_INT,
+    (TYPE_STRING, TYPE_STRING): TYPE_STRING,
+})
+OP_MINUS = Operator('-', {
+    (TYPE_INT,): TYPE_INT,
+    (TYPE_INT, TYPE_INT): TYPE_INT,
+})
+OP_TIMES = Operator('*', {
+    (TYPE_INT, TYPE_INT): TYPE_INT,
+})
+OP_DIV = Operator('/', {
+    (TYPE_INT, TYPE_INT): TYPE_INT,
+})
+OP_MOD = Operator('%', {
+    (TYPE_INT, TYPE_INT): TYPE_INT,
+})
+OP_NOT = Operator('!', {
+    (TYPE_BOOL,): TYPE_BOOL,
+})
+OP_OR = Operator('||', {
+    (TYPE_BOOL, TYPE_BOOL): TYPE_BOOL,
+})
+OP_AND = Operator('&&', {
+    (TYPE_BOOL, TYPE_BOOL): TYPE_BOOL,
+})
+OP_LT = Operator('<', {
+    (TYPE_INT, TYPE_INT): TYPE_BOOL,
+})
+OP_LE = Operator('<=', {
+    (TYPE_INT, TYPE_INT): TYPE_BOOL,
+})
+OP_GT = Operator('>', {
+    (TYPE_INT, TYPE_INT): TYPE_BOOL,
+})
+OP_GE = Operator('>=', {
+    (TYPE_INT, TYPE_INT): TYPE_BOOL,
+})
+OP_EQ = Operator('==', {
+    (TYPE_INT, TYPE_INT): TYPE_BOOL,
+    (TYPE_BOOL, TYPE_BOOL): TYPE_BOOL,
+    (TYPE_STRING, TYPE_STRING): TYPE_BOOL,
+})
+OP_NE = Operator('!=', {
+    (TYPE_INT, TYPE_INT): TYPE_BOOL,
+    (TYPE_BOOL, TYPE_BOOL): TYPE_BOOL,
+    (TYPE_STRING, TYPE_STRING): TYPE_BOOL,
+})

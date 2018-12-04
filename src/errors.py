@@ -57,6 +57,15 @@ class UndefinedVariableError(CompilerError):
         super().__init__(line)
         self.msg = f'undefined variable: {ident}'
 
+class UndefinedFunctionError(CompilerError):
+    def __init__(self, line, ident):
+        super().__init__(line)
+        self.msg = f'undefined function: {ident}'
+
+class InvalidCallError(CompilerError):
+    def __init__(self, line, ident):
+        super().__init__(line)
+        self.msg = f'invalid call to function: {ident}'
 
 # noinspection PyShadowingBuiltins
 class NotImplementedError(CompilerError):

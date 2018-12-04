@@ -1,7 +1,7 @@
 import ply.lex as lex
 
-from operators import BINOP_PLUS, BINOP_MINUS, BINOP_TIMES, BINOP_DIV, BINOP_MOD, UNOP_NOT, BINOP_OR, BINOP_AND, BINOP_LT, BINOP_LE, BINOP_GT, BINOP_GE, \
-    BINOP_INT_EQ, BINOP_INT_NE
+from operators import OP_PLUS, OP_MINUS, OP_TIMES, OP_DIV, OP_MOD, OP_NOT, OP_OR, OP_AND, OP_LT, OP_LE, OP_GT, OP_GE, \
+    OP_EQ, OP_NE
 from errors import IllegalCharacterError
 
 reserved = ("true", "false", "return", "if", "else", "while",)
@@ -28,20 +28,20 @@ def t_newline(t):
     t.lexer.lineno += len(t.value)
 
 # TODO: dont hardcode operators
-t_plus = BINOP_PLUS.op_regex()
-t_minus = BINOP_MINUS.op_regex()
-t_times = BINOP_TIMES.op_regex()
-t_divide = BINOP_DIV.op_regex()
-t_mod = BINOP_MOD.op_regex()
-t_not = UNOP_NOT.op_regex()
-t_or = BINOP_OR.op_regex()
-t_and = BINOP_AND.op_regex()
-t_lt = BINOP_LT.op_regex()
-t_le = BINOP_LE.op_regex()
-t_gt = BINOP_GT.op_regex()
-t_ge = BINOP_GE.op_regex()
-t_eq = BINOP_INT_EQ.op_regex()
-t_ne = BINOP_INT_NE.op_regex()
+t_plus = OP_PLUS.op_regex()
+t_minus = OP_MINUS.op_regex()
+t_times = OP_TIMES.op_regex()
+t_divide = OP_DIV.op_regex()
+t_mod = OP_MOD.op_regex()
+t_not = OP_NOT.op_regex()
+t_or = OP_OR.op_regex()
+t_and = OP_AND.op_regex()
+t_lt = OP_LT.op_regex()
+t_le = OP_LE.op_regex()
+t_gt = OP_GT.op_regex()
+t_ge = OP_GE.op_regex()
+t_eq = OP_EQ.op_regex()
+t_ne = OP_NE.op_regex()
 
 precedence = (
     ('right', 'or'),
@@ -51,6 +51,8 @@ precedence = (
     ('left', 'times', 'divide', 'mod'),
     ('right', 'not', 'uminus'),
 )
+
+# todo: precedence = Operator.precedence_table
 
 t_equals = r'\='
 t_plusplus = r'\+\+'
