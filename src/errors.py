@@ -67,6 +67,9 @@ class InvalidCallError(CompilerError):
         super().__init__(line)
         self.msg = f'invalid call to function: {ident}'
 
+class MissingReturnError(CompilerError):
+    msg = 'function has code path without return statement'
+
 # noinspection PyShadowingBuiltins
 class NotImplementedError(CompilerError):
     msg = 'not implemented'
