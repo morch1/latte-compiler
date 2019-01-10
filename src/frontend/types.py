@@ -19,7 +19,7 @@ class Type:
             raise InvalidTypeError(None, name)
 
 
-TYPE_INT = Type('int')
-TYPE_BOOL = Type('boolean')
-TYPE_STRING = Type('string')
-TYPE_VOID = Type('void')
+INT = Type('int')
+BOOL = Type('boolean')
+STRING = Type('string')
+VOID = Type('void')

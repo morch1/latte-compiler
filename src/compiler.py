@@ -1,7 +1,8 @@
 import sys
-# import backend
-from parse import parse
-from errors import CompilerError
+import frontend.parser as par
+# noinspection PyUnresolvedReferences
+import frontend.analyzer
+import errors
 
 
 def main():
@@ -9,18 +10,20 @@ def main():
     text = ''.join(sys.stdin.readlines())
 
     try:
-        tree = parse(text)
-    except CompilerError as err:
-        print(f'ERROR\n{err}')
+        program = par.parse(text)
+        program.check()
+    except errors.CompilerError as err:
+        print(f'ERROR\n{err}\n', file=sys.stderr)
         exit(1)
         return
 
     if c:
-        # backend.compile(tree)
         pass
     else:
-        print(f'OK\n{tree}\n')
-        exit(0)
+        print(f'OK\n', file=sys.stderr)
+        print(program)
+
+    exit(0)
 
 
 if __name__ == '__main__':

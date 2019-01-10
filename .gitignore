@@ -117,4 +117,4 @@ dmypy.json
 /ignore
 /test/program.ins
 /test
-/src/parser.out
+/test/parser.out

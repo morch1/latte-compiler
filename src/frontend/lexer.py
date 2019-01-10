@@ -1,8 +1,6 @@
 import ply.lex as lex
-
-from operators import OP_PLUS, OP_MINUS, OP_TIMES, OP_DIV, OP_MOD, OP_NOT, OP_OR, OP_AND, OP_LT, OP_LE, OP_GT, OP_GE, \
-    OP_EQ, OP_NE
-from errors import IllegalCharacterError
+import frontend.operators as ops
+import errors
 
 reserved = ("true", "false", "return", "if", "else", "while",)
 
@@ -28,20 +26,20 @@ def t_newline(t):
     t.lexer.lineno += len(t.value)
 
 # TODO: dont hardcode operators
-t_plus = OP_PLUS.op_regex()
-t_minus = OP_MINUS.op_regex()
-t_times = OP_TIMES.op_regex()
-t_divide = OP_DIV.op_regex()
-t_mod = OP_MOD.op_regex()
-t_not = OP_NOT.op_regex()
-t_or = OP_OR.op_regex()
-t_and = OP_AND.op_regex()
-t_lt = OP_LT.op_regex()
-t_le = OP_LE.op_regex()
-t_gt = OP_GT.op_regex()
-t_ge = OP_GE.op_regex()
-t_eq = OP_EQ.op_regex()
-t_ne = OP_NE.op_regex()
+t_plus = ops.PLUS.op_regex()
+t_minus = ops.MINUS.op_regex()
+t_times = ops.TIMES.op_regex()
+t_divide = ops.DIV.op_regex()
+t_mod = ops.MOD.op_regex()
+t_not = ops.NOT.op_regex()
+t_or = ops.OR.op_regex()
+t_and = ops.AND.op_regex()
+t_lt = ops.LT.op_regex()
+t_le = ops.LE.op_regex()
+t_gt = ops.GT.op_regex()
+t_ge = ops.GE.op_regex()
+t_eq = ops.EQ.op_regex()
+t_ne = ops.NE.op_regex()
 
 precedence = (
     ('right', 'or'),
@@ -78,6 +76,6 @@ def t_comment(t):
     t.lexer.lineno += t.value.count('\n')
 
 def t_error(t):
-    raise IllegalCharacterError(t.lexer.lineno, t.value[0])
+    raise errors.IllegalCharacterError(t.lexer.lineno, t.value[0])
 
 lexer = lex.lex(debug=False)
