@@ -43,21 +43,21 @@ int readBoolean() {  // for debugging
 int _compareStrings(int op, char* str1, char* str2) {
     int c = strcmp(str1, str2);
     switch(op) {
-		case 0:
-			return c == 0;
-		case 1:
-			return c != 0;
-		case 2:
-			return c < 0;
-		case 3:
-			return c <= 0;
-		case 4:
-			return c > 0;
-		case 5:
-			return c >= 0;
-		default:
-			return 0;
-	}
+        case 0:
+            return c == 0;
+        case 1:
+            return c != 0;
+        case 2:
+            return c < 0;
+        case 3:
+            return c <= 0;
+        case 4:
+            return c > 0;
+        case 5:
+            return c >= 0;
+        default:
+            return 0;
+    }
 }
 
 char* _addStrings(char* str1, char* str2) {
