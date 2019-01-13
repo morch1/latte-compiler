@@ -1,9 +1,8 @@
 import frontend.ast as ast
-import frontend.types as types
 import errors
 from functools import wraps
 
-def analyzer(cls):
+def checker(cls):
     def decorator(func):
         @wraps(func)
         def wrapper(*args, **kwargs):
@@ -12,46 +11,62 @@ def analyzer(cls):
         return func
     return decorator
 
-@analyzer(ast.ExpUnOp)
+# _NEG_OPS = {'||': '&&', '==': '!=', '<': '>=', '>': '<='}
+# NEG_OPS = {}
+# for k, v in _NEG_OPS.items():
+#     NEG_OPS[v] = k
+# NEG_OPS = {**_NEG_OPS, **NEG_OPS}
+#
+# def negate_bool_exp(exp):
+#     if isinstance(exp, ast.ExpBinOp):
+#         if exp.op in ['||', '&&']:
+#             negate_bool_exp(exp.exp1)
+#             negate_bool_exp(exp.exp2)
+#         exp.op = NEG_OPS[exp.op]
+
+
+@checker(ast.ExpUnOp)
 def check(self, fenv, venv):
     exp_type = self.exp.check(fenv, venv)
-    try:
-        return self.op.check(exp_type)
-    except errors.TypeMismatchError as ex:
-        ex.line = self.lineno
-        raise ex
+    if self.op == '-' and exp_type == ast.TYPE_INT:
+        self.type = ast.TYPE_INT
+    elif self.op == '!' and exp_type == ast.TYPE_BOOL:
+        # self.op = ''
+        # negate_bool_exp(self.exp)
+        self.type = ast.TYPE_BOOL
+    else:
+        raise errors.TypeMismatchError(self.lineno)
+    return self.type
 
-@analyzer(ast.ExpBinOp)
+@checker(ast.ExpBinOp)
 def check(self, fenv, venv):
-    exp1_type = self.exp1.check(fenv, venv)
-    exp2_type = self.exp2.check(fenv, venv)
-    try:
-        return self.op.check(exp1_type, exp2_type)
-    except errors.TypeMismatchError as ex:
-        ex.line = self.lineno
-        raise ex
+    exp_types = (self.exp1.check(fenv, venv), self.exp2.check(fenv, venv))
+    if ast.TYPE_VOID in exp_types:
+        raise errors.TypeMismatchError(self.lineno)
+    if self.op in ['+', '-', '*', '/', '%'] and exp_types == (ast.TYPE_INT, ast.TYPE_INT):
+        self.type = ast.TYPE_INT
+    elif self.op == '+' and exp_types == (ast.TYPE_STRING, ast.TYPE_STRING):
+        self.type = ast.TYPE_STRING
+    elif (self.op in ['||', '&&'] and exp_types == (ast.TYPE_BOOL, ast.TYPE_BOOL)) or\
+            (self.op in ['<', '<=', '>', '>=', '==', '!='] and exp_types[0] == exp_types[1]):
+        self.type = ast.TYPE_BOOL
+    else:
+        raise errors.TypeMismatchError(self.lineno)
+    return self.type
 
-@analyzer(ast.ExpVar)
+@checker(ast.ExpVar)
 def check(self, fenv, venv):
     try:
-        return venv[self.id]
+        self.type = venv[self.id]
     except KeyError:
         raise errors.UndefinedVariableError(self.lineno, self.id)
+    return self.type
 
-
-@analyzer(ast.ExpIntConst)
+@checker(ast.ExpConst)
 def check(self, fenv, venv):
-    return types.INT
+    return self.type
 
-@analyzer(ast.ExpStringConst)
-def check(self, fenv, venv):
-    return types.STRING
-
-@analyzer(ast.ExpBoolConst)
-def check(self, fenv, venv):
-    return types.BOOL
-
-@analyzer(ast.ExpApp)
+@checker(ast.ExpFun)
 def check(self, fenv, venv):
     try:
         fun = fenv[self.fid]
@@ -63,25 +78,28 @@ def check(self, fenv, venv):
         exp_type = ca.check(fenv, venv)
         if exp_type != fa.type:
             raise errors.TypeMismatchError(self.lineno)
-    return fun.type
+    self.type = fun.type
+    return self.type
 
-@analyzer(ast.LhsVar)
+
+@checker(ast.LhsVar)
 def check(self, venv):
     try:
         return venv[self.id]
     except KeyError:
         raise errors.UndefinedVariableError(self.lineno, self.id)
 
-@analyzer(ast.StmtSkip)
+@checker(ast.StmtSkip)
 def check(self, fenv, venv):
     return venv
 
-@analyzer(ast.StmtDecl)
+@checker(ast.StmtDecl)
 def check(self, fenv, venv):
-    venv[self.id] = self.type
-    return venv
+    nvenv = venv.copy()
+    nvenv[self.id] = self.type
+    return nvenv
 
-@analyzer(ast.StmtAssVar)
+@checker(ast.StmtAss)
 def check(self, fenv, venv):
     exp_type = self.exp.check(fenv, venv)
     lhs_type = self.lhs.check(venv)
@@ -89,67 +107,47 @@ def check(self, fenv, venv):
         raise errors.TypeMismatchError(self.lineno)
     return venv
 
-@analyzer(ast.StmtInc)
-def check(self, fenv, venv):
-    lhs_type = self.lhs.check(venv)
-    if lhs_type != types.INT:
-        raise errors.TypeMismatchError(self.lineno)
-    return venv
-
-@analyzer(ast.StmtDec)
-def check(self, fenv, venv):
-    lhs_type = self.lhs.check(venv)
-    if lhs_type != types.INT:
-        raise errors.TypeMismatchError(self.lineno)
-    return venv
-
-@analyzer(ast.StmtReturn)
+@checker(ast.StmtReturn)
 def check(self, fenv, venv):
     exp_type = self.exp.check(fenv, venv)
     if venv['*'] != exp_type:
         raise errors.TypeMismatchError(self.lineno)
     return venv
 
-@analyzer(ast.StmtVoidReturn)
+@checker(ast.StmtVoidReturn)
 def check(self, fenv, venv):
-    if venv['*'] != types.VOID:
+    if venv['*'] != ast.TYPE_VOID:
         raise errors.TypeMismatchError(self.lineno)
     return venv
 
-@analyzer(ast.StmtIf)
+@checker(ast.StmtIf)
 def check(self, fenv, venv):
     cond_type = self.cond.check(fenv, venv)
-    if cond_type != types.BOOL:
+    if cond_type != ast.TYPE_BOOL:
         raise errors.TypeMismatchError(self.lineno)
     self.stmt.check(fenv, venv)
     return venv
 
-@analyzer(ast.StmtIfElse)
+@checker(ast.StmtIfElse)
 def check(self, fenv, venv):
-    cond_type = self.cond.check(fenv, venv)
-    if cond_type != types.BOOL:
-        raise errors.TypeMismatchError(self.lineno)
-    self.stmt1.check(fenv, venv)
+    super(ast.StmtIfElse, self).check(fenv, venv)
     self.stmt2.check(fenv, venv)
     return venv
 
-@analyzer(ast.StmtWhile)
+@checker(ast.StmtWhile)
 def check(self, fenv, venv):
-    cond_type = self.cond.check(fenv, venv)
-    if cond_type != types.BOOL:
-        raise errors.TypeMismatchError(self.lineno)
-    self.stmt.check(fenv, venv)
+    super(ast.StmtWhile, self).check(fenv, venv)
     return venv
 
-@analyzer(ast.StmtExp)
+@checker(ast.StmtExp)
 def check(self, fenv, venv):
     self.exp.check(fenv, venv)
     return venv
 
-@analyzer(ast.StmtBlock)
+@checker(ast.StmtBlock)
 def check(self, fenv, venv):
     localids = []
-    nvenv = venv
+    nvenv = venv.copy()
     for stmt in self.stmts:
         if isinstance(stmt, ast.StmtDecl):
             if stmt.id in localids:
@@ -158,10 +156,12 @@ def check(self, fenv, venv):
         nvenv = stmt.check(fenv, nvenv)
     return venv
 
-@analyzer(ast.FunDef)
+@checker(ast.TopDef)
 def check(self, fenv):
-    if self.id == 'main' and (self.type != types.INT or len(self.args) > 0):
+    if self.id == 'main' and (self.type != ast.TYPE_INT or len(self.args) > 0):
         raise errors.InvalidMainFunctionError(self.lineno)
+    if self.type != ast.TYPE_VOID and not self.block.returns:
+        raise errors.MissingReturnError(self.lineno)
     venv = {}
     for arg in self.args:
         if arg.id in venv:
@@ -170,7 +170,11 @@ def check(self, fenv):
     venv['*'] = self.type
     self.block.check(fenv, venv)
 
-@analyzer(ast.Program)
+@checker(ast.BuiltinFunDecl)
+def check(self, fenv):
+    return
+
+@checker(ast.Program)
 def check(self):
     fenv = {}
     for topdef in self.topdefs:

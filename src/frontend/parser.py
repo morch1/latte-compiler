@@ -2,8 +2,6 @@ import ply.yacc as yacc
 import frontend.ast as ast
 import errors
 from frontend.lexer import tokens, precedence, lexer
-from frontend.types import Type
-from frontend.operators import Operator
 
 
 def p_program(p):
@@ -36,7 +34,7 @@ def p_args_empty(p):
 
 def p_arg(p):
     """arg : type id"""
-    p[0] = ast.Arg(p.lexer.lineno, p[1], p[2])
+    p[0] = ast.FunArg(p.lexer.lineno, p[1], p[2])
 
 
 def p_stmts(p):
@@ -66,9 +64,13 @@ def p_stmt_decl(p):
     """stmt : type decls semi"""
     stmts = []
     for decl in p[2]:
-        stmts.append(ast.StmtDecl(p.lexer.lineno, p[1], decl[0]))
         if len(decl) == 2:
-            stmts.append(ast.StmtAssVar(p.lexer.lineno, ast.LhsVar(p.lexer.lineno, decl[0]), decl[1]))
+            stmts.extend([
+                ast.StmtDecl(p.lexer.lineno, p[1], decl[0]),
+                ast.StmtAss(p.lexer.lineno, ast.LhsVar(p.lexer.lineno, decl[0]), decl[1])
+            ])
+        else:
+            stmts.append(ast.StmtDeclDefault(p.lexer.lineno, p[1], decl[0]))
     p[0] = stmts
 
 def p_decls(p):
@@ -89,15 +91,17 @@ def p_decl_init(p):
 
 def p_stmt_ass(p):
     """stmt : id equals exp semi"""
-    p[0] = ast.StmtAssVar(p.lexer.lineno, ast.LhsVar(p.lexer.lineno, p[1]), p[3])
+    p[0] = ast.StmtAss(p.lexer.lineno, ast.LhsVar(p.lexer.lineno, p[1]), p[3])
 
 def p_stmt_inc(p):
     """stmt : id plusplus semi"""
-    p[0] = ast.StmtInc(p.lexer.lineno, ast.LhsVar(p.lexer.lineno, p[1]))
+    p[0] = ast.StmtAss(p.lexer.lineno, ast.LhsVar(p.lexer.lineno, p[1]), ast.ExpBinOp(p.lexer.lineno, '+', ast.ExpVar(p.lexer.lineno, p[1]), ast.ExpIntConst(p.lexer.lineno, 1)))
+    # p[0] = ast.StmtInc(p.lexer.lineno, ast.LhsVar(p.lexer.lineno, p[1]))
 
 def p_stmt_dec(p):
     """stmt : id minusminus semi"""
-    p[0] = ast.StmtDec(p.lexer.lineno, ast.LhsVar(p.lexer.lineno, p[1]))
+    p[0] = ast.StmtAss(p.lexer.lineno, ast.LhsVar(p.lexer.lineno, p[1]), ast.ExpBinOp(p.lexer.lineno, '-', ast.ExpVar(p.lexer.lineno, p[1]), ast.ExpIntConst(p.lexer.lineno, 1)))
+    # p[0] = ast.StmtDec(p.lexer.lineno, ast.LhsVar(p.lexer.lineno, p[1]))
 
 def p_stmt_return(p):
     """stmt : return exp semi"""
@@ -127,7 +131,7 @@ def p_stmt_exp(p):
 def p_type(p):
     """type : id"""
     try:
-        p[0] = Type.get_by_name(p[1])
+        p[0] = ast.Type.get_by_name(p[1])
     except errors.InvalidTypeError as ex:
         ex.line = p.lexer.lineno
         raise ex
@@ -159,22 +163,12 @@ def p_exp_binop(p):
            | exp times exp
            | exp divide exp
            | exp mod exp """
-    try:
-        op = Operator.get_by_name(p[2])
-    except errors.InvalidOperatorError as ex:
-        ex.line = p.lexer.lineno
-        raise ex
-    p[0] = ast.ExpBinOp(p.lexer.lineno, op, p[1], p[3])
+    p[0] = ast.ExpBinOp(p.lexer.lineno, p[2], p[1], p[3])
 
 def p_exp_unop(p):
     """exp : minus exp %prec uminus
            | not exp"""
-    try:
-        op = Operator.get_by_name(p[1])
-    except errors.InvalidOperatorError as ex:
-        ex.line = p.lexer.lineno
-        raise ex
-    p[0] = ast.ExpUnOp(p.lexer.lineno, op, p[2])
+    p[0] = ast.ExpUnOp(p.lexer.lineno, p[1], p[2])
 
 def p_exp_id(p):
     """exp : id"""
@@ -193,9 +187,9 @@ def p_exp_boolconst(p):
            | false"""
     p[0] = ast.ExpBoolConst(p.lexer.lineno, p[1] == "true")
 
-def p_exp_app(p):
+def p_exp_fun(p):
     """exp : id lparen exps rparen"""
-    p[0] = ast.ExpApp(p.lexer.lineno, p[1], p[3])
+    p[0] = ast.ExpFun(p.lexer.lineno, p[1], p[3])
 
 def p_exp_paren(p):
     """exp : lparen exp rparen"""

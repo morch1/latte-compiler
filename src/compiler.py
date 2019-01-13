@@ -1,9 +1,8 @@
 import sys
 import frontend.parser as par
-# noinspection PyUnresolvedReferences
-import frontend.analyzer
+import frontend.checker
+import backend.llvm_translator
 import errors
-
 
 def main():
     c = (len(sys.argv) > 1 and sys.argv[1] == 'c')
@@ -18,7 +17,8 @@ def main():
         return
 
     if c:
-        pass
+        llvm = program.translate()
+        print(llvm)
     else:
         print(f'OK\n', file=sys.stderr)
         print(program)

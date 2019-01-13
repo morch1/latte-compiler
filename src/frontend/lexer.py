@@ -1,5 +1,5 @@
 import ply.lex as lex
-import frontend.operators as ops
+import frontend.ast as ast
 import errors
 
 reserved = ("true", "false", "return", "if", "else", "while",)
@@ -25,21 +25,20 @@ def t_newline(t):
     r"""\n+"""
     t.lexer.lineno += len(t.value)
 
-# TODO: dont hardcode operators
-t_plus = ops.PLUS.op_regex()
-t_minus = ops.MINUS.op_regex()
-t_times = ops.TIMES.op_regex()
-t_divide = ops.DIV.op_regex()
-t_mod = ops.MOD.op_regex()
-t_not = ops.NOT.op_regex()
-t_or = ops.OR.op_regex()
-t_and = ops.AND.op_regex()
-t_lt = ops.LT.op_regex()
-t_le = ops.LE.op_regex()
-t_gt = ops.GT.op_regex()
-t_ge = ops.GE.op_regex()
-t_eq = ops.EQ.op_regex()
-t_ne = ops.NE.op_regex()
+t_plus = r'\+'
+t_minus = r'\-'
+t_times = r'\*'
+t_divide = r'\/'
+t_mod = r'\%'
+t_not = r'\!'
+t_or = r'\|\|'
+t_and = r'\&\&'
+t_lt = r'\<'
+t_le = r'\<\='
+t_gt = r'\>'
+t_ge = r'\>\='
+t_eq = r'\=\='
+t_ne = r'\!\='
 
 precedence = (
     ('right', 'or'),
@@ -49,8 +48,6 @@ precedence = (
     ('left', 'times', 'divide', 'mod'),
     ('right', 'not', 'uminus'),
 )
-
-# todo: precedence = Operator.precedence_table
 
 t_equals = r'\='
 t_plusplus = r'\+\+'
