@@ -118,3 +118,4 @@ dmypy.json
 /test/program.ins
 /test
 /test/parser.out
+/lib/runtime.bc
