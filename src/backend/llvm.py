@@ -141,7 +141,7 @@ class StmtPhi:
     vals: list
 
     def __str__(self):
-        return f'{self.var} = phi {self.type} ' + ', '.join(f'[ {v[0]}, %{v[1]} ]' for v in self.vals)
+        return f'{self.var} = phi {self.type} ' + ', '.join(f'[{v[0]}, %{v[1]}]' for v in self.vals)
 
 @dataclass
 class GlobalDef:
