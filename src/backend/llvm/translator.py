@@ -31,7 +31,14 @@ class Builder:
             self.current_block.succlabels.update({stmt.flabel, stmt.tlabel})
 
     def new_block(self, label):
+        # add current block as predecessor where needed
+        for b in self.blocks:
+            if b.label in self.current_block.succlabels:
+                b.preds.append(self.current_block)
+                self.current_block.succlabels.remove(b.label)
+                self.current_block.succs.append(b)
         new_block = llvm.Block(label)
+        # add new block as successor where needed
         for b in self.blocks:
             if label in b.succlabels:
                 new_block.preds.append(b)
