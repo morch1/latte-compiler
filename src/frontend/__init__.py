@@ -554,19 +554,14 @@ class Program(Node):
             BuiltinFunDecl(0, TYPE_STRING, '$addStrings', [TYPE_STRING, TYPE_STRING]),
         ] + self.topdefs
 
-    @property
-    def called_functions(self):
-        """returns a set of ids of functions called in the program"""
-        fs = {'main'}
-        for d in self.topdefs:
-            fs.update(d.called_functions)
-        return fs
-
     def __str__(self):
         return '\n'.join(str(d) for d in self.topdefs)
 
     def check(self):
-        """checks corectness of the program"""
+        """
+        - checks corectness of the program
+        - removes unused functions
+        """
         fenv = {}
         for topdef in self.topdefs:
             if topdef.id in fenv:
@@ -576,8 +571,17 @@ class Program(Node):
             raise errors.MissingMainFunctionError(self.lineno)
         for topdef in self.topdefs:
             topdef.check(fenv)
+
+        def get_called_functions(fid):
+            cfs = [fid]
+            for fid2 in fenv[fid].called_functions:
+                cfs.append(fid2)
+                cfs.extend(get_called_functions(fid2))
+            return cfs
+
         ntopdefs = []
+        called_functions = get_called_functions('main')
         for topdef in self.topdefs:
-            if topdef.id in self.called_functions:
+            if topdef.id in called_functions:
                 ntopdefs.append(topdef)
         self.topdefs = ntopdefs
