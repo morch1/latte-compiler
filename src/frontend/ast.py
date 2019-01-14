@@ -131,8 +131,11 @@ class StmtDecl(Stmt):
         return f'{self.type} {self.id};'
 
 @dataclass
-class StmtDeclDefault(StmtDecl):
-    pass
+class StmtDeclInit(StmtDecl):
+    exp: Exp
+
+    def __str__(self):
+        return f'{self.type} {self.id} = {self.exp};'
 
 @dataclass
 class StmtAss(Stmt):

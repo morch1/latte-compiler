@@ -65,12 +65,9 @@ def p_stmt_decl(p):
     stmts = []
     for decl in p[2]:
         if len(decl) == 2:
-            stmts.extend([
-                ast.StmtDecl(p.lexer.lineno, p[1], decl[0]),
-                ast.StmtAss(p.lexer.lineno, ast.LhsVar(p.lexer.lineno, decl[0]), decl[1])
-            ])
+            stmts.append(ast.StmtDeclInit(p.lexer.lineno, p[1], decl[0], decl[1]))
         else:
-            stmts.append(ast.StmtDeclDefault(p.lexer.lineno, p[1], decl[0]))
+            stmts.append(ast.StmtDecl(p.lexer.lineno, p[1], decl[0]))
     p[0] = stmts
 
 def p_decls(p):

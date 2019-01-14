@@ -178,15 +178,6 @@ def translate(self, venv):
 
 @translator(ast.StmtDecl)
 def translate(self, venv):
-    nvenv = venv.copy()
-    a = fresh_loc()
-    nvenv[self.id] = a
-    builder.add_stmt(llvm.StmtAlloc(a, TYPES[self.type]))
-    return nvenv
-
-@translator(ast.StmtDeclDefault)
-def translate(self, venv):
-    nvenv = super(ast.StmtDeclDefault, self).translate(venv)
     if self.type == ast.TYPE_STRING:
         if '' not in strlits:
             lit = llvm.StrLit('')
@@ -199,7 +190,21 @@ def translate(self, venv):
         v = 0
     else:
         assert False
-    builder.add_stmt(llvm.StmtStore(TYPES[self.type], v, nvenv[self.id]))
+    nvenv = venv.copy()
+    a = fresh_loc()
+    nvenv[self.id] = a
+    builder.add_stmt(llvm.StmtAlloc(a, TYPES[self.type]))
+    builder.add_stmt(llvm.StmtStore(TYPES[self.type], v, a))
+    return nvenv
+
+@translator(ast.StmtDeclInit)
+def translate(self, venv):
+    e1v = self.exp.translate(venv)
+    nvenv = venv.copy()
+    a = fresh_loc()
+    nvenv[self.id] = a
+    builder.add_stmt(llvm.StmtAlloc(a, TYPES[self.type]))
+    builder.add_stmt(llvm.StmtStore(TYPES[self.exp.type], e1v, a))
     return nvenv
 
 @translator(ast.StmtAss)

@@ -99,6 +99,15 @@ def check(self, fenv, venv):
     nvenv[self.id] = self.type
     return nvenv
 
+@checker(ast.StmtDeclInit)
+def check(self, fenv, venv):
+    exp_type = self.exp.check(fenv, venv)
+    if self.type != exp_type:
+        raise errors.TypeMismatchError(self.lineno)
+    nvenv = venv.copy()
+    nvenv[self.id] = self.type
+    return nvenv
+
 @checker(ast.StmtAss)
 def check(self, fenv, venv):
     exp_type = self.exp.check(fenv, venv)
