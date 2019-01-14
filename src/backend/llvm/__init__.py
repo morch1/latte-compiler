@@ -1,18 +1,13 @@
 import re
 from dataclasses import dataclass
+from backend.llvm.types import TYPE_VOID, TYPE_I1, TYPE_I8, TYPE_I8P, TYPE_I64
 
-
-TYPE_INT = 'i64'
-TYPE_BOOL = 'i1'
-TYPE_STRING = 'i8*'
-TYPE_CHAR = 'i8'
-TYPE_VOID = 'void'
 
 OP_ADD = 'add'
 OP_SUB = 'sub'
 OP_MUL = 'mul'
 OP_DIV = 'sdiv'
-OP_MOD = 'srem'
+OP_REM = 'srem'
 OP_EQ = 'icmp eq'
 OP_NE = 'icmp ne'
 OP_LT = 'icmp slt'
@@ -29,7 +24,7 @@ class Block:
         self.stmts = []
         self.preds = []
         self.succs = []
-        self.succlabels = set()
+        self.succlabels = set()  # only used during construction
 
     def __str__(self):
         return f'  {self.label}:  ; preds: ' + ', '.join(p.label for p in self.preds) + '\n' \
@@ -94,7 +89,7 @@ class StrLit:
 
     @property
     def type(self):
-        return f'[{len(self)} x {TYPE_CHAR}]'
+        return f'[{len(self)} x {TYPE_I8}]'
 
 @dataclass
 class StmtGetGlobal:
@@ -103,7 +98,7 @@ class StmtGetGlobal:
     addr: str
 
     def __str__(self):
-        return f'{self.var} = getelementptr {self.type}, {self.type}* {self.addr}, {TYPE_INT} 0, {TYPE_INT} 0'
+        return f'{self.var} = getelementptr {self.type}, {self.type}* {self.addr}, {TYPE_I64} 0, {TYPE_I64} 0'
 
 @dataclass
 class StmtReturn:

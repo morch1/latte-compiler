@@ -1,8 +1,9 @@
 import frontend
+import frontend.types as ft
 import backend.llvm as llvm
+from backend.llvm.types import TYPE_VOID, TYPE_I1, TYPE_I8P, TYPE_I64
 from itertools import count
 from functools import wraps
-from frontend.types import TYPE_STRING, TYPE_BOOL, TYPE_INT, TYPE_VOID
 
 def translator(cls):
     def decorator(func):
@@ -57,14 +58,11 @@ def fresh_global():
 
 
 TYPES = {
-    TYPE_INT: llvm.TYPE_INT,
-    TYPE_BOOL:  llvm.TYPE_BOOL,
-    TYPE_STRING: llvm.TYPE_STRING,
-    TYPE_VOID: llvm.TYPE_VOID,
+    ft.TYPE_INT: TYPE_I64,
+    ft.TYPE_BOOL:  TYPE_I1,
+    ft.TYPE_STRING: TYPE_I8P,
+    ft.TYPE_VOID: TYPE_VOID,
 }
-
-def TYPE_STRCONST(l):
-    return f'[ {l} x {llvm.TYPE_CHAR} ]'
 
 BIN_OPS = {
     '==': llvm.OP_EQ,
@@ -77,7 +75,7 @@ BIN_OPS = {
     '-': llvm.OP_SUB,
     '*': llvm.OP_MUL,
     '/': llvm.OP_DIV,
-    '%': llvm.OP_MOD,
+    '%': llvm.OP_REM,
 }
 
 COMP_OP_IDS = dict(zip(BIN_OPS.keys(), range(6)))
@@ -92,9 +90,9 @@ def translate(self, venv):
     e1v = self.exp.translate(venv)
     v = fresh_temp()
     if self.op == '-':
-        builder.add_stmt(llvm.StmtBinOp(v, llvm.OP_SUB, llvm.TYPE_INT, 0, e1v))
+        builder.add_stmt(llvm.StmtBinOp(v, llvm.OP_SUB, TYPE_I64, 0, e1v))
     elif self.op == '!':
-        builder.add_stmt(llvm.StmtBinOp(v, llvm.OP_EQ, llvm.TYPE_BOOL, e1v, 0))
+        builder.add_stmt(llvm.StmtBinOp(v, llvm.OP_EQ, TYPE_I1, e1v, 0))
     return v
 
 @translator(frontend.ExpBinOp)
@@ -114,13 +112,13 @@ def translate(self, venv):
         e2b = builder.current_block.label
         builder.add_stmt(llvm.StmtJump(lend))
         builder.new_block(lend)
-        builder.add_stmt(llvm.StmtPhi(v, llvm.TYPE_BOOL, [(self.op == '||' and 1 or 0, e1b), (e2v, e2b)]))
-    elif self.exp1.type == TYPE_STRING:
+        builder.add_stmt(llvm.StmtPhi(v, TYPE_I1, [(self.op == '||' and 1 or 0, e1b), (e2v, e2b)]))
+    elif self.exp1.type == ft.TYPE_STRING:
         e2v = self.exp2.translate(venv)
         if self.op == '+':
-            builder.add_stmt(llvm.StmtCall(v, llvm.TYPE_STRING, '_addStrings', [(llvm.TYPE_STRING, e1v), (llvm.TYPE_STRING, e2v)]))
+            builder.add_stmt(llvm.StmtCall(v, TYPE_I8P, '_addStrings', [(TYPE_I8P, e1v), (TYPE_I8P, e2v)]))
         else:
-            builder.add_stmt(llvm.StmtCall(v, llvm.TYPE_BOOL, '_compareStrings', [(llvm.TYPE_INT, COMP_OP_IDS[self.op]), (llvm.TYPE_STRING, e1v), (llvm.TYPE_STRING, e2v)]))
+            builder.add_stmt(llvm.StmtCall(v, TYPE_I1, '_compareStrings', [(TYPE_I64, COMP_OP_IDS[self.op]), (TYPE_I8P, e1v), (TYPE_I8P, e2v)]))
     else:
         e2v = self.exp2.translate(venv)
         builder.add_stmt(llvm.StmtBinOp(v, BIN_OPS[self.op], TYPES[self.exp1.type], e1v, e2v))
@@ -158,7 +156,7 @@ def translate(self, venv):
     for exp in self.args:
         ev = exp.translate(venv)
         args.append((TYPES[exp.type], ev))
-    if self.type == TYPE_VOID:
+    if self.type == ft.TYPE_VOID:
         v = None
     else:
         v = fresh_temp()
@@ -177,7 +175,7 @@ def translate(self, venv):
 
 @translator(frontend.StmtDecl)
 def translate(self, venv):
-    if self.type == TYPE_STRING:
+    if self.type == ft.TYPE_STRING:
         if '' not in strlits:
             lit = llvm.StrLit('')
             gaddr = fresh_global()
@@ -185,7 +183,7 @@ def translate(self, venv):
         g = strlits['']
         v = fresh_temp()
         builder.add_stmt(llvm.StmtGetGlobal(v, g.type, g.addr))
-    elif self.type in [TYPE_BOOL, TYPE_INT]:
+    elif self.type in [ft.TYPE_BOOL, ft.TYPE_INT]:
         v = 0
     else:
         assert False

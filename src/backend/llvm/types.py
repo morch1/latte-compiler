@@ -1,0 +1,5 @@
+TYPE_I64 = 'i64'
+TYPE_I1 = 'i1'
+TYPE_I8 = 'i8'
+TYPE_I8P = TYPE_I8 + '*'
+TYPE_VOID = 'void'
