@@ -8,7 +8,7 @@ void error() {
 }
 
 void printString(char* s) {
-    printf("%s", s);
+    printf("%s\n", s);
 }
 
 void printInt(int i) {
