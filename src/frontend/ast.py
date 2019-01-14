@@ -107,7 +107,7 @@ class LhsVar(Lhs):
 @dataclass
 class Stmt(Node):
     @property
-    def returns(self):
+    def returns(self):  # returns true if the statement contains return statements on all code paths
         return False 
     
     @property
