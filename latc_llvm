@@ -1,15 +1,17 @@
 #!/bin/bash
 
 if [[ $# -ne 1 ]]; then
-    echo "usage: $0 (source.ins)"
+    echo "usage: $0 (source.lat)"
     exit 1
 fi
 
 EXEC_DIR=$(dirname "${BASH_SOURCE[0]}")
 SOURCE="$1"
-OUTPUT="${SOURCE%.ins}"
+OUTPUT="${SOURCE%.lat}"
 OUTPUT_DIR="$(dirname ${OUTPUT})"
-CLASSNAME="$(basename -- ${OUTPUT})"
-"$EXEC_DIR/venv/bin/python" "$EXEC_DIR/src/compiler.py" <"$SOURCE" >"$OUTPUT.ll"
+"$EXEC_DIR/venv/bin/python" "$EXEC_DIR/src/compiler.py" c <"$SOURCE" >"$OUTPUT.ll"
+CODE=$?
+if [[ ${CODE} -ne 0 ]]; then exit ${CODE}; fi
 llvm-as -o "$OUTPUT.tmp.bc" "$OUTPUT.ll"
 llvm-link -o "$OUTPUT.bc" "$OUTPUT.tmp.bc" "$EXEC_DIR/lib/runtime.bc"
+exit 0

@@ -1,0 +1,12 @@
+#!/bin/bash
+
+if [[ $# -ne 1 ]]; then
+    echo "usage: $0 (source.lat)"
+    exit 1
+fi
+
+EXEC_DIR=$(dirname "${BASH_SOURCE[0]}")
+SOURCE="$1"
+"$EXEC_DIR/venv/bin/python" "$EXEC_DIR/src/compiler.py" <"$SOURCE"
+CODE=$?
+exit ${CODE}
