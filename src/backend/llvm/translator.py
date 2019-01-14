@@ -1,9 +1,8 @@
-import frontend.ast as ast
+import frontend
 import backend.llvm as llvm
-import errors
-import re
 from itertools import count
 from functools import wraps
+from frontend.types import TYPE_STRING, TYPE_BOOL, TYPE_INT, TYPE_VOID
 
 def translator(cls):
     def decorator(func):
@@ -58,10 +57,10 @@ def fresh_global():
 
 
 TYPES = {
-    ast.TYPE_INT: llvm.TYPE_INT,
-    ast.TYPE_BOOL:  llvm.TYPE_BOOL,
-    ast.TYPE_STRING: llvm.TYPE_STRING,
-    ast.TYPE_VOID: llvm.TYPE_VOID,
+    TYPE_INT: llvm.TYPE_INT,
+    TYPE_BOOL:  llvm.TYPE_BOOL,
+    TYPE_STRING: llvm.TYPE_STRING,
+    TYPE_VOID: llvm.TYPE_VOID,
 }
 
 def TYPE_STRCONST(l):
@@ -88,7 +87,7 @@ builder: Builder = None
 strlits = {}
 
 
-@translator(ast.ExpUnOp)
+@translator(frontend.ExpUnOp)
 def translate(self, venv):
     e1v = self.exp.translate(venv)
     v = fresh_temp()
@@ -98,7 +97,7 @@ def translate(self, venv):
         builder.add_stmt(llvm.StmtBinOp(v, llvm.OP_EQ, llvm.TYPE_BOOL, e1v, 0))
     return v
 
-@translator(ast.ExpBinOp)
+@translator(frontend.ExpBinOp)
 def translate(self, venv):
     e1v = self.exp1.translate(venv)
     v = fresh_temp()
@@ -116,7 +115,7 @@ def translate(self, venv):
         builder.add_stmt(llvm.StmtJump(lend))
         builder.new_block(lend)
         builder.add_stmt(llvm.StmtPhi(v, llvm.TYPE_BOOL, [(self.op == '||' and 1 or 0, e1b), (e2v, e2b)]))
-    elif self.exp1.type == ast.TYPE_STRING:
+    elif self.exp1.type == TYPE_STRING:
         e2v = self.exp2.translate(venv)
         if self.op == '+':
             builder.add_stmt(llvm.StmtCall(v, llvm.TYPE_STRING, '_addStrings', [(llvm.TYPE_STRING, e1v), (llvm.TYPE_STRING, e2v)]))
@@ -127,18 +126,18 @@ def translate(self, venv):
         builder.add_stmt(llvm.StmtBinOp(v, BIN_OPS[self.op], TYPES[self.exp1.type], e1v, e2v))
     return v
 
-@translator(ast.ExpVar)
+@translator(frontend.ExpVar)
 def translate(self, venv):
     a = venv[self.id]
     v = fresh_temp()
     builder.add_stmt(llvm.StmtLoad(v, TYPES[self.type], a))
     return v
 
-@translator(ast.ExpIntConst)
+@translator(frontend.ExpIntConst)
 def translate(self, venv):
     return self.val
 
-@translator(ast.ExpStringConst)
+@translator(frontend.ExpStringConst)
 def translate(self, venv):
     if self.val not in strlits:
         lit = llvm.StrLit(self.val)
@@ -149,17 +148,17 @@ def translate(self, venv):
     builder.add_stmt(llvm.StmtGetGlobal(v, g.type, g.addr))
     return v
 
-@translator(ast.ExpBoolConst)
+@translator(frontend.ExpBoolConst)
 def translate(self, venv):
     return int(self.val)
 
-@translator(ast.ExpFun)
+@translator(frontend.ExpFun)
 def translate(self, venv):
     args = []
     for exp in self.args:
         ev = exp.translate(venv)
         args.append((TYPES[exp.type], ev))
-    if self.type == ast.TYPE_VOID:
+    if self.type == TYPE_VOID:
         v = None
     else:
         v = fresh_temp()
@@ -167,18 +166,18 @@ def translate(self, venv):
     return v
 
 
-@translator(ast.LhsVar)
+@translator(frontend.LhsVar)
 def translate(self, venv):
     return venv[self.id]
 
 
-@translator(ast.StmtSkip)
+@translator(frontend.StmtSkip)
 def translate(self, venv):
     return venv
 
-@translator(ast.StmtDecl)
+@translator(frontend.StmtDecl)
 def translate(self, venv):
-    if self.type == ast.TYPE_STRING:
+    if self.type == TYPE_STRING:
         if '' not in strlits:
             lit = llvm.StrLit('')
             gaddr = fresh_global()
@@ -186,7 +185,7 @@ def translate(self, venv):
         g = strlits['']
         v = fresh_temp()
         builder.add_stmt(llvm.StmtGetGlobal(v, g.type, g.addr))
-    elif self.type in [ast.TYPE_BOOL, ast.TYPE_INT]:
+    elif self.type in [TYPE_BOOL, TYPE_INT]:
         v = 0
     else:
         assert False
@@ -197,7 +196,7 @@ def translate(self, venv):
     builder.add_stmt(llvm.StmtStore(TYPES[self.type], v, a))
     return nvenv
 
-@translator(ast.StmtDeclInit)
+@translator(frontend.StmtDeclInit)
 def translate(self, venv):
     e1v = self.exp.translate(venv)
     nvenv = venv.copy()
@@ -207,25 +206,25 @@ def translate(self, venv):
     builder.add_stmt(llvm.StmtStore(TYPES[self.exp.type], e1v, a))
     return nvenv
 
-@translator(ast.StmtAss)
+@translator(frontend.StmtAss)
 def translate(self, venv):
     a = self.lhs.translate(venv)
     e1v = self.exp.translate(venv)
     builder.add_stmt(llvm.StmtStore(TYPES[self.exp.type], e1v, a))
     return venv
 
-@translator(ast.StmtReturn)
+@translator(frontend.StmtReturn)
 def translate(self, venv):
     e1v = self.exp.translate(venv)
     builder.add_stmt(llvm.StmtReturn(TYPES[self.exp.type], e1v))
     return venv
 
-@translator(ast.StmtVoidReturn)
+@translator(frontend.StmtVoidReturn)
 def translate(self, venv):
     builder.add_stmt(llvm.StmtVoidReturn())
     return venv
 
-@translator(ast.StmtIf)
+@translator(frontend.StmtIf)
 def translate(self, venv):
     ltrue = fresh_label()
     lfalse = fresh_label()
@@ -233,11 +232,12 @@ def translate(self, venv):
     builder.add_stmt(llvm.StmtCondJump(cv, ltrue, lfalse))
     builder.new_block(ltrue)
     self.stmt.translate(venv)
-    builder.add_stmt(llvm.StmtJump(lfalse))
+    if not self.stmt.returns:
+        builder.add_stmt(llvm.StmtJump(lfalse))
     builder.new_block(lfalse)
     return venv
 
-@translator(ast.StmtIfElse)
+@translator(frontend.StmtIfElse)
 def translate(self, venv):
     ltrue = fresh_label()
     lfalse = fresh_label()
@@ -255,7 +255,7 @@ def translate(self, venv):
         builder.new_block(lend)
     return venv
 
-@translator(ast.StmtWhile)
+@translator(frontend.StmtWhile)
 def translate(self, venv):
     lcond = fresh_label()
     ltrue = fresh_label()
@@ -266,32 +266,31 @@ def translate(self, venv):
     builder.add_stmt(llvm.StmtCondJump(cv, ltrue, lfalse))
     builder.new_block(ltrue)
     self.stmt.translate(venv)
-    builder.add_stmt(llvm.StmtJump(lcond))
+    if not self.stmt.returns:
+        builder.add_stmt(llvm.StmtJump(lcond))
     builder.new_block(lfalse)
     return venv
 
-@translator(ast.StmtExp)
+@translator(frontend.StmtExp)
 def translate(self, venv):
     self.exp.translate(venv)
     return venv
 
-@translator(ast.StmtBlock)
+@translator(frontend.StmtBlock)
 def translate(self, venv):
     nvenv = venv.copy()
     for block_stmt in self.stmts:
         nvenv = block_stmt.translate(nvenv)
-        if block_stmt.returns:
-            break
     return venv
 
 
-@translator(ast.BuiltinFunDecl)
+@translator(frontend.BuiltinFunDecl)
 def translate(self):
     t = TYPES[self.type]
     args = [TYPES[a.type] for a in self.args]
     return llvm.BuiltinFunDecl(t, self.id.replace('$', '_'), args)
 
-@translator(ast.TopDef)
+@translator(frontend.TopDef)
 def translate(self):
     global id_gen, builder
     id_gen = count(1)
@@ -311,13 +310,11 @@ def translate(self):
             llvm.StmtStore(arg_type, arg_tmp, arg_loc),
         ])
     self.block.translate(venv)
-    if not self.block.returns:
-        builder.add_stmt(llvm.StmtVoidReturn())
     t = TYPES[self.type]
     args = [(TYPES[a.type], arg_tmps[a.id]) for a in self.args]
     return llvm.TopDef(t, self.id, args, builder.blocks)
 
-@translator(ast.Program)
+@translator(frontend.Program)
 def translate(self):
     topdefs = []
     for topdef in self.topdefs:

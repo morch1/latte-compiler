@@ -1,6 +1,5 @@
 import sys
 import frontend.parser as par
-import frontend.checker
 import backend.llvm.translator
 import errors
 

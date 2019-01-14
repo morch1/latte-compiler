@@ -1,5 +1,4 @@
 import ply.lex as lex
-import frontend.ast as ast
 import errors
 
 reserved = ("true", "false", "return", "if", "else", "while",)
