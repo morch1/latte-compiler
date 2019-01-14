@@ -1,11 +1,11 @@
 all: venv runtime
 
-runtime: src/lib/runtime.ll
-	mkdir -p lib
-	llvm-as -o lib/runtime.bc src/lib/runtime.ll
+runtime: lib/runtime.ll
+	llvm-as -o lib/runtime.bc lib/runtime.ll
 
-src/lib/runtime.ll: src/lib/runtime.c
-	clang -emit-llvm -S src/lib/runtime.c -o src/lib/runtime.ll
+lib/runtime.ll: src/lib/runtime.c
+	mkdir -p lib
+	clang -emit-llvm -S src/lib/runtime.c -o lib/runtime.ll
 
 venv: venv/bin/activate
 venv/bin/activate: requirements.txt
