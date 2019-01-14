@@ -15,10 +15,6 @@ void printInt(int i) {
     printf("%d\n", i);
 }
 
-void printBoolean(int b) {  // for debugging
-    printf("%s\n", b ? "true" : "false");
-}
-
 char* readString() {
     char* str = 0;
     size_t len;
@@ -36,9 +32,8 @@ int readInt() {
     return i;
 }
 
-int readBoolean() {  // for debugging
-    return readInt();
-}
+
+/* internal functions: */
 
 int _compareStrings(int op, char* str1, char* str2) {
     int c = strcmp(str1, str2);

@@ -252,10 +252,8 @@ class Program(Node):
         self.topdefs = [
             BuiltinFunDecl(0, TYPE_VOID, 'error', []),
             BuiltinFunDecl(0, TYPE_VOID, 'printInt', [TYPE_INT]),
-            BuiltinFunDecl(0, TYPE_VOID, 'printBoolean', [TYPE_BOOL]),  # for debugging purposes
             BuiltinFunDecl(0, TYPE_VOID, 'printString', [TYPE_STRING]),
             BuiltinFunDecl(0, TYPE_INT, 'readInt', []),
-            BuiltinFunDecl(0, TYPE_BOOL, 'readBoolean', []),  # for debugging purposes
             BuiltinFunDecl(0, TYPE_STRING, 'readString', []),
             # internal functions:
             BuiltinFunDecl(0, TYPE_BOOL, '$compareStrings', [TYPE_INT, TYPE_STRING, TYPE_STRING]),
