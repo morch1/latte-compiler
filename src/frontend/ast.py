@@ -245,7 +245,7 @@ class BuiltinFunDecl(FunDecl):
         self.args = [FunArg(0, t, '') for t in self.args]
 
     def __str__(self):
-        return f'// builtin: {self.type} {self.id} (' + ', '.join(str(a.type) for a in self.args) + ')'
+        return f'// {self.type} {self.id} (' + ', '.join(str(a.type) for a in self.args) + ')'
 
 @dataclass
 class Program(Node):
