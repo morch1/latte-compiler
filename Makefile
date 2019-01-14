@@ -1,7 +1,7 @@
 all: venv runtime
 
 runtime: src/lib/runtime.ll
-    mkdir -p lib
+	mkdir -p lib
 	llvm-as -o lib/runtime.bc src/lib/runtime.ll
 
 src/lib/runtime.ll: src/lib/runtime.c
