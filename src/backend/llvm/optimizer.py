@@ -18,6 +18,13 @@ def ssaify_function(f: llvm.TopDef):
                 dead[s.addr] = s.type
         return live
 
+    class StmtLocalPhi(llvm.StmtPhi):
+        """
+        used to differentiate new phi statements used for computing values of local variables
+        from phi statements added earlier used for computing boolean expressions
+        """
+        pass
+
     for b in f.blocks:  # insert phis
         if len(b.preds) == 0:
             continue
@@ -25,7 +32,7 @@ def ssaify_function(f: llvm.TopDef):
 
         # add phis for all variables live at the start of the block
         for lv, lvtype in lvs.items():
-            b.stmts.insert(0, llvm.StmtPhi(lv, lvtype, [(lv, p.label) for p in b.preds]))
+            b.stmts.insert(0, llvm.StmtLocalPhi(lv, lvtype, [(lv, p.label) for p in b.preds]))
 
     def fresh_loc(v):
         if v not in id_gens:
@@ -48,9 +55,9 @@ def ssaify_function(f: llvm.TopDef):
             if isinstance(s, llvm.StmtStore):
                 pm[s.addr] = fresh_loc(s.addr)
                 nstmts.append(StmtAss(pm[s.addr], s.val))
-            elif isinstance(s, llvm.StmtPhi):
+            elif isinstance(s, StmtLocalPhi):
                 pm[s.var] = fresh_loc(s.var)
-                nstmts.append(llvm.StmtPhi(pm[s.var], s.type, s.vals))
+                nstmts.append(StmtLocalPhi(pm[s.var], s.type, s.vals))
             elif isinstance(s, llvm.StmtLoad):
                 nstmts.append(StmtAss(s.var, pm[s.addr]))
             elif isinstance(s, llvm.StmtAlloc):
@@ -71,13 +78,17 @@ def ssaify_function(f: llvm.TopDef):
         except KeyError:
             nv = fresh_loc(v)
             phi_map[b][v] = nv
-            extra_phis[b].insert(0, llvm.StmtPhi(nv, t, [(get_phi_val(p, t, v), p.label) for p in b.preds]))
+            phi_vals = [(get_phi_val(p, t, v), p.label) for p in b.preds]
+            if len(phi_vals) == 1:
+                extra_phis[b].append(StmtAss(nv, phi_vals[0][0]))
+            else:
+                extra_phis[b].append(StmtLocalPhi(nv, t, phi_vals))
             return nv
 
     for b in f.blocks:  # fix phis
         nstmts = []
         for s in b.stmts:
-            if isinstance(s, llvm.StmtPhi):
+            if isinstance(s, StmtLocalPhi):
                 s.vals = [(get_phi_val(label2block[lbl], s.type, v), lbl) for v, lbl in s.vals]
                 if len(s.vals) == 1:
                     nstmts.append(StmtAss(s.var, s.vals[0][0]))
