@@ -1,8 +1,12 @@
 import backend.llvm as llvm
+import backend.llvm.translator as translator
 from dataclasses import dataclass
 from itertools import count
 
-def ssaify_function(f: llvm.TopDef):
+BIN_OPS = dict((v, k) for k, v in translator.BIN_OPS.items())
+BIN_OPS[llvm.OP_DIV] = '//'
+
+def optimize_function(f: llvm.TopDef):
     """replaces alloc/store/load statements with register operations"""
     id_gens = {}
     label2block = dict((b.label, b) for b in f.blocks)
@@ -101,18 +105,12 @@ def ssaify_function(f: llvm.TopDef):
     for b in f.blocks:  # add extra phis
         b.stmts = extra_phis[b] + b.stmts
 
-    var_map = {}
-    for b in f.blocks:  # make map of assignments
-        for s in b.stmts:
-            if isinstance(s, StmtAss):
-                var_map[s.dst] = s.src
-
     def get_val(v):
         if v not in var_map:
             return v
         return get_val(var_map[v])
 
-    for b in f.blocks:  # eliminate assignments
+    def get_vals(b: llvm.Block):
         for s in b.stmts:
             if isinstance(s, llvm.StmtBinOp):
                 s.arg1 = get_val(s.arg1)
@@ -125,11 +123,35 @@ def ssaify_function(f: llvm.TopDef):
                 s.cond = get_val(s.cond)
             elif isinstance(s, llvm.StmtPhi):
                 s.vals = [(get_val(v), lbl) for v, lbl in s.vals]
+
+    var_map = {}
+    for b in f.blocks:  # make map of assignments
+        for s in b.stmts:
+            if isinstance(s, StmtAss):
+                var_map[s.dst] = s.src
+
+    for b in f.blocks:  # eliminate assignments
+        get_vals(b)
         b.stmts = list(filter(lambda s: not isinstance(s, StmtAss), b.stmts))
+
+    # return
+    while True:
+        var_map = {}
+        for b in f.blocks:  # make map of constant expression values
+            for s in b.stmts:
+                if isinstance(s, llvm.StmtBinOp) and isinstance(s.arg1, int) and isinstance(s.arg2, int):
+                    var_map[s.var] = eval(f'{s.arg1} {BIN_OPS[s.op]} {s.arg2}')
+
+        if len(var_map) == 0:  # stop if there are no more constant expressions
+            break
+
+        for b in f.blocks:  # eliminate constant expressions
+            get_vals(b)
+            b.stmts = list(filter(lambda s: not (isinstance(s, llvm.StmtBinOp) and s.var in var_map), b.stmts))
 
 
 def optimize_program(p: llvm.Program):
     for d in p.topdefs:
         if isinstance(d, llvm.BuiltinFunDecl):
             continue
-        ssaify_function(d)
+        optimize_function(d)
