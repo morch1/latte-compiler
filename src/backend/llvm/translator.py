@@ -319,8 +319,7 @@ def translate(self):
     args = [(TYPES[a.type], arg_tmps[a.id]) for a in self.args]
     return llvm.TopDef(t, self.id, args, builder.blocks)
 
-@translator(frontend.Program)
-def translate(self):
+def translate_program(self: frontend.Program):
     topdefs = []
     for topdef in self.topdefs:
         itopdef = topdef.translate()

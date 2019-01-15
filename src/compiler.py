@@ -1,7 +1,7 @@
 import sys
 import frontend.parser as par
-import backend.llvm.translator
 import errors
+from backend.llvm.translator import translate_program
 from backend.llvm.optimizer import optimize_program
 
 def main():
@@ -17,7 +17,7 @@ def main():
         return
 
     if c:
-        llvm = program.translate()
+        llvm = translate_program(program)
         optimize_program(llvm)
         print(llvm)
     else:
