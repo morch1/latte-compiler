@@ -30,6 +30,9 @@ class Block:
         return f'  {self.label}:  ; preds: ' + ', '.join(p.label for p in self.preds) + '\n' \
                + '\n'.join(f'    {s}' for s in self.stmts)
 
+    def __hash__(self):
+        return int(self.label[1:])
+
 @dataclass
 class StmtBinOp:
     var: str
