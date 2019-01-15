@@ -572,15 +572,16 @@ class Program(Node):
         for topdef in self.topdefs:
             topdef.check(fenv)
 
-        def get_called_functions(fid):
-            cfs = [fid]
+        queue = ['main']
+        called_functions = []
+        while len(queue) > 0:
+            fid = queue.pop(0)
+            called_functions.append(fid)
             for fid2 in fenv[fid].called_functions:
-                cfs.append(fid2)
-                cfs.extend(get_called_functions(fid2))
-            return cfs
+                if fid2 not in called_functions:
+                    queue.append(fid2)
 
         ntopdefs = []
-        called_functions = get_called_functions('main')
         for topdef in self.topdefs:
             if topdef.id in called_functions:
                 ntopdefs.append(topdef)
