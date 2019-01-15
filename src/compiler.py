@@ -17,8 +17,10 @@ def main():
         return
 
     if c:
+        noopts = (len(sys.argv) > 2 and sys.argv[2] == 'noopts')
         llvm = translate_program(program)
-        optimize_program(llvm)
+        if not noopts:
+            optimize_program(llvm)
         print(llvm)
     else:
         print(f'OK\n', file=sys.stderr)

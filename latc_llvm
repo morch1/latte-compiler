@@ -1,15 +1,32 @@
 #!/bin/bash
 
-if [[ $# -ne 1 ]]; then
+EXEC_DIR=$(dirname "${BASH_SOURCE[0]}")
+
+while [[ $# -gt 0 ]]
+do
+key="$1"
+
+case ${key} in
+    -noopts)
+    NOOPTS="noopts"
+    shift
+    ;;
+    *)
+    SOURCE="$1"
+    shift
+    ;;
+esac
+done
+
+if [[ -z "$SOURCE" ]]
+then
     echo "usage: $0 (source.lat)"
     exit 1
 fi
 
-EXEC_DIR=$(dirname "${BASH_SOURCE[0]}")
-SOURCE="$1"
 OUTPUT="${SOURCE%.lat}"
 OUTPUT_DIR="$(dirname ${OUTPUT})"
-"$EXEC_DIR/venv/bin/python" "$EXEC_DIR/src/compiler.py" c <"$SOURCE" >"$OUTPUT.ll"
+"$EXEC_DIR/venv/bin/python" "$EXEC_DIR/src/compiler.py" c "$NOOPTS" <"$SOURCE" >"$OUTPUT.ll"
 CODE=$?
 if [[ ${CODE} -ne 0 ]]; then exit ${CODE}; fi
 llvm-as -o "$OUTPUT.tmp.bc" "$OUTPUT.ll"
