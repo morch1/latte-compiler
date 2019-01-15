@@ -140,7 +140,7 @@ def optimize_function(f: llvm.TopDef):
         for b in f.blocks:  # make map of constant expression values
             for s in b.stmts:
                 if isinstance(s, llvm.StmtBinOp) and isinstance(s.arg1, int) and isinstance(s.arg2, int):
-                    var_map[s.var] = eval(f'{s.arg1} {BIN_OPS[s.op]} {s.arg2}')
+                    var_map[s.var] = int(eval(f'{s.arg1} {BIN_OPS[s.op]} {s.arg2}'))
 
         if len(var_map) == 0:  # stop if there are no more constant expressions
             break
