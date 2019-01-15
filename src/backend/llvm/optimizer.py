@@ -32,7 +32,7 @@ def ssaify_function(f: llvm.TopDef):
 
         # add phis for all variables live at the start of the block
         for lv, lvtype in lvs.items():
-            b.stmts.insert(0, llvm.StmtLocalPhi(lv, lvtype, [(lv, p.label) for p in b.preds]))
+            b.stmts.insert(0, StmtLocalPhi(lv, lvtype, [(lv, p.label) for p in b.preds]))
 
     def fresh_loc(v):
         if v not in id_gens:
