@@ -96,7 +96,11 @@ class ExpBinOp(Exp):
             self.type = TYPE_STRING
         elif (self.op in ['||', '&&'] and exp_types == (TYPE_BOOL, TYPE_BOOL)) or \
                 (self.op in COMP_OPS and self.exp1.type == self.exp2.type):
-            if isinstance(self.exp1, ExpConst) and isinstance(self.exp2, ExpConst):
+            if isinstance(self.exp1, ExpConst) and self.op == '||' and self.exp1.val:
+                return ExpBoolConst(self.lineno, True)
+            elif isinstance(self.exp1, ExpConst) and self.op == '&&' and not self.exp1.val:
+                return ExpBoolConst(self.lineno, False)
+            elif isinstance(self.exp1, ExpConst) and isinstance(self.exp2, ExpConst):
                 if self.op == '||':
                     return ExpBoolConst(self.lineno, self.exp1.val or self.exp2.val)
                 elif self.op == '&&':
