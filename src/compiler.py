@@ -2,6 +2,7 @@ import sys
 import frontend.parser as par
 import backend.llvm.translator
 import errors
+from backend.llvm.optimizer import optimize_program
 
 def main():
     c = (len(sys.argv) > 1 and sys.argv[1] == 'c')
@@ -17,6 +18,7 @@ def main():
 
     if c:
         llvm = program.translate()
+        optimize_program(llvm)
         print(llvm)
     else:
         print(f'OK\n', file=sys.stderr)
