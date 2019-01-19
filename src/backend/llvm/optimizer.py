@@ -82,24 +82,13 @@ def optimize_function(f: llvm.TopDef):
             nv = fresh_loc(v)
             phi_map[b][v] = nv
             phi_vals = [(get_phi_val(p, t, v), p.label) for p in b.preds]
-            if len(phi_vals) == 1:
-                extra_phis[b].append(StmtAss(nv, phi_vals[0][0]))
-            else:
-                extra_phis[b].append(StmtLocalPhi(nv, t, phi_vals))
+            extra_phis[b].append(StmtLocalPhi(nv, t, phi_vals))
             return nv
 
     for b in f.blocks:  # fix phis
-        nstmts = []
         for s in b.stmts:
             if isinstance(s, StmtLocalPhi):
                 s.vals = [(get_phi_val(label2block[lbl], s.type, v), lbl) for v, lbl in s.vals]
-                if len(s.vals) == 1:
-                    nstmts.append(StmtAss(s.var, s.vals[0][0]))
-                else:
-                    nstmts.append(s)
-            else:
-                nstmts.append(s)
-        b.stmts = nstmts
 
     for b in f.blocks:  # add extra phis
         b.stmts = extra_phis[b] + b.stmts
@@ -123,17 +112,33 @@ def optimize_function(f: llvm.TopDef):
             elif isinstance(s, llvm.StmtPhi):
                 s.vals = [(get_val(v), lbl) for v, lbl in s.vals]
 
-    var_map = {}
-    for b in f.blocks:  # make map of assignments
-        for s in b.stmts:
-            if isinstance(s, StmtAss):
-                var_map[s.dst] = s.src
+    while True:
+        for b in f.blocks:  # replace trivial phis with assignments
+            nstmts = []
+            for s in b.stmts:
+                if isinstance(s, StmtLocalPhi):
+                    different_vals = set(v for v, _ in s.vals)
+                    if len(different_vals) == 1:
+                        nstmts.append(StmtAss(s.var, s.vals[0][0]))
+                    else:
+                        nstmts.append(s)
+                else:
+                    nstmts.append(s)
+            b.stmts = nstmts
 
-    for b in f.blocks:  # eliminate assignments
-        get_vals(b)
-        b.stmts = list(filter(lambda s: not isinstance(s, StmtAss), b.stmts))
+        var_map = {}
+        for b in f.blocks:  # make map of assignments
+            for s in b.stmts:
+                if isinstance(s, StmtAss):
+                    var_map[s.dst] = s.src
 
-    # return
+        if len(var_map) == 0:  # stop if there are no more assignments
+            break
+
+        for b in f.blocks:  # eliminate assignments
+            get_vals(b)
+            b.stmts = list(filter(lambda s: not isinstance(s, StmtAss), b.stmts))
+
     while True:
         var_map = {}
         for b in f.blocks:  # make map of constant expression values
