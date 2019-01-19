@@ -405,6 +405,10 @@ class StmtWhile(StmtIf):
     def __str__(self):
         return f'while {self.cond} {self.stmt}'
 
+    @property
+    def returns(self):
+        return isinstance(self.cond, ExpBoolConst) and self.cond.val and self.stmt.returns
+
     def check(self, fenv, venv):
         super(StmtWhile, self).check(fenv, venv)
         if isinstance(self.cond, ExpBoolConst) and not self.cond.val:
