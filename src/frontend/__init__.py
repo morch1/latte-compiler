@@ -548,6 +548,8 @@ class TopDef(FunDecl):
         for arg in self.args:
             if arg.id in venv:
                 raise errors.DuplicateVariableNameError(arg.lineno, arg.id)
+            elif arg.type == TYPE_VOID:
+                raise errors.InvalidTypeError(arg.lineno, arg.type)
             venv[arg.id] = arg.type
         venv['*'] = self.type
         self.block, _ = self.block.check(fenv, venv)
