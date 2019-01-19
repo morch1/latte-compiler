@@ -144,7 +144,7 @@ def optimize_function(f: llvm.TopDef):
                     elif s.op == llvm.OP_REM:
                         var_map[s.var] = (s.arg1 % s.arg2) - (s.arg2 if s.arg1 < 0 else 0)
                     else:
-                        var_map[s.var] = eval(f'{s.arg1} {BIN_OPS[s.op]} {s.arg2}')
+                        var_map[s.var] = int(eval(f'{s.arg1} {BIN_OPS[s.op]} {s.arg2}'))
 
         if len(var_map) == 0:  # stop if there are no more constant expressions
             break
