@@ -142,7 +142,7 @@ def optimize_function(f: llvm.TopDef):
                     if s.op == llvm.OP_DIV:
                         var_map[s.var] = s.arg1 // s.arg2
                     elif s.op == llvm.OP_REM:
-                        var_map[s.var] = (s.arg1 % s.arg2) - s.arg2 if s.arg1 < 0 else 0
+                        var_map[s.var] = (s.arg1 % s.arg2) - (s.arg2 if s.arg1 < 0 else 0)
                     else:
                         var_map[s.var] = eval(f'{s.arg1} {BIN_OPS[s.op]} {s.arg2}')
 
