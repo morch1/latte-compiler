@@ -4,7 +4,6 @@ from dataclasses import dataclass
 from itertools import count
 
 BIN_OPS = dict((v, k) for k, v in translator.BIN_OPS.items())
-BIN_OPS[llvm.OP_DIV] = '//'
 
 def optimize_function(f: llvm.TopDef):
     """replaces alloc/store/load statements with register operations"""
@@ -140,7 +139,12 @@ def optimize_function(f: llvm.TopDef):
         for b in f.blocks:  # make map of constant expression values
             for s in b.stmts:
                 if isinstance(s, llvm.StmtBinOp) and isinstance(s.arg1, int) and isinstance(s.arg2, int):
-                    var_map[s.var] = int(eval(f'{s.arg1} {BIN_OPS[s.op]} {s.arg2}'))
+                    if s.op == llvm.OP_DIV:
+                        var_map[s.var] = s.arg1 // s.arg2
+                    elif s.op == llvm.OP_REM:
+                        var_map[s.var] = (s.arg1 % s.arg2) - s.arg2 if s.arg1 < 0 else 0
+                    else:
+                        var_map[s.var] = eval(f'{s.arg1} {BIN_OPS[s.op]} {s.arg2}')
 
         if len(var_map) == 0:  # stop if there are no more constant expressions
             break

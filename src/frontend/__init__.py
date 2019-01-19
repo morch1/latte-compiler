@@ -87,6 +87,8 @@ class ExpBinOp(Exp):
             if isinstance(self.exp1, ExpConst) and isinstance(self.exp2, ExpConst):
                 if self.op == '/':
                     return ExpIntConst(self.lineno, self.exp1.val // self.exp2.val)
+                elif self.op == '%':
+                    return ExpIntConst(self.lineno, (self.exp1.val % self.exp2.val) - self.exp2.val if self.exp1.val < 0 else 0)
                 else:
                     return ExpIntConst(self.lineno, eval(f'{self.exp1.val}{self.op}{self.exp2.val}'))
             self.type = TYPE_INT
