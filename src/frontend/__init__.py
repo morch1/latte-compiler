@@ -192,6 +192,17 @@ class ExpFun(Exp):
 
 # -------- statements --------
 
+def as_block(s):
+    if isinstance(s, list):
+        return StmtBlock(s[0].lineno, s)
+    elif isinstance(s, StmtBlock):
+        return s
+    elif isinstance(s, Stmt):
+        return StmtBlock(s.lineno, [s])
+    else:
+        assert False
+
+
 @dataclass
 class Lhs(Node):
     type = None
@@ -227,13 +238,6 @@ class Stmt(Node):
         """returns true if the statement contains a return statement on all code paths"""
         return False
 
-    @property
-    def as_block(self):
-        if isinstance(self, StmtBlock):
-            return self
-        else:
-            return StmtBlock(self.lineno, [self])
-
     def check(self, fenv, venv):
         """
         - checks corectness of statement
@@ -257,6 +261,8 @@ class StmtDecl(Stmt):
         return f'{self.type} {self.id};'
 
     def check(self, fenv, venv):
+        if self.type == TYPE_VOID:
+            raise errors.InvalidTypeError(self.lineno, self.type)
         nvenv = venv.copy()
         nvenv[self.id] = self.type
         return self, nvenv
@@ -352,7 +358,7 @@ class StmtIf(Stmt):
         return fs
 
     def __post_init__(self):
-        self.stmt = self.stmt.as_block
+        self.stmt = as_block(self.stmt)
 
     def __str__(self):
         return f'if {self.cond} {self.stmt}'
@@ -386,7 +392,7 @@ class StmtIfElse(StmtIf):
 
     def __post_init__(self):
         super().__post_init__()
-        self.stmt2 = self.stmt2.as_block
+        self.stmt2 = as_block(self.stmt2)
 
     def __str__(self):
         return f'if {self.cond} {self.stmt} else {self.stmt2}'
