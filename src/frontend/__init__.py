@@ -427,6 +427,9 @@ class StmtWhile(StmtIf):
 class StmtWhileTrue(Stmt):
     stmt: Stmt
 
+    def __post_init__(self):
+        self.stmt = as_block(self.stmt)
+
     def __str__(self):
         return f'while (true) {self.stmt}'
 
@@ -440,6 +443,7 @@ class StmtWhileTrue(Stmt):
 
     def check(self, fenv, venv):
         self.stmt, _ = self.stmt.check(fenv, venv)
+        return self, venv
 
 
 @dataclass
