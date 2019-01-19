@@ -58,15 +58,26 @@ class StmtCall:
 class StmtAlloc:
     addr: str
     type: str
+    noopt: bool = False
 
     def __str__(self):
         return f'{self.addr} = alloca {self.type}'
+
+@dataclass
+class StmtAllocArray:
+    addr: str
+    type: str
+    count: str
+
+    def __str__(self):
+        return f'{self.addr} = alloca {self.type}, {TYPE_I64} {self.count}'
 
 @dataclass
 class StmtLoad:
     var: str
     type: str
     addr: str
+    noopt: bool = False  # True will prevent this statement from getting removed by the optimizer
 
     def __str__(self):
         return f'{self.var} = load {self.type}, {self.type}* {self.addr}'
@@ -76,6 +87,7 @@ class StmtStore:
     type: str
     val: object
     addr: str
+    noopt: bool = False
 
     def __str__(self):
         return f'store {self.type} {self.val}, {self.type}* {self.addr}'
@@ -95,13 +107,14 @@ class StrLit:
         return f'[{len(self)} x {TYPE_I8}]'
 
 @dataclass
-class StmtGetGlobal:
+class StmtGetElementPtr:
     var: str
     type: str
     addr: str
+    idx: list
 
     def __str__(self):
-        return f'{self.var} = getelementptr {self.type}, {self.type}* {self.addr}, {TYPE_I64} 0, {TYPE_I64} 0'
+        return f'{self.var} = getelementptr {self.type}, {self.type}* {self.addr}, ' + ', '.join(f'{t} {i}' for t, i in self.idx)
 
 @dataclass
 class StmtReturn:

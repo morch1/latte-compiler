@@ -88,15 +88,19 @@ def p_decl_init(p):
 
 def p_stmt_ass(p):
     """stmt : id equals exp semi"""
-    p[0] = frontend.StmtAss(p.lexer.lineno, frontend.LhsVar(p.lexer.lineno, p[1]), p[3])
+    p[0] = frontend.StmtAssVar(p.lexer.lineno, frontend.LhsVar(p.lexer.lineno, p[1]), p[3])
+
+def p_stmt_ass_array(p):
+    """stmt : id lbracket exp rbracket equals exp semi"""
+    p[0] = frontend.StmtAssArray(p.lexer.lineno, frontend.LhsArray(p.lexer.lineno, p[1], p[3]), p[6])
 
 def p_stmt_inc(p):
     """stmt : id plusplus semi"""
-    p[0] = frontend.StmtAss(p.lexer.lineno, frontend.LhsVar(p.lexer.lineno, p[1]), frontend.ExpBinOp(p.lexer.lineno, '+', frontend.ExpVar(p.lexer.lineno, p[1]), frontend.ExpIntConst(p.lexer.lineno, 1)))
+    p[0] = frontend.StmtAssVar(p.lexer.lineno, frontend.LhsVar(p.lexer.lineno, p[1]), frontend.ExpBinOp(p.lexer.lineno, '+', frontend.ExpVar(p.lexer.lineno, p[1]), frontend.ExpIntConst(p.lexer.lineno, 1)))
 
 def p_stmt_dec(p):
     """stmt : id minusminus semi"""
-    p[0] = frontend.StmtAss(p.lexer.lineno, frontend.LhsVar(p.lexer.lineno, p[1]), frontend.ExpBinOp(p.lexer.lineno, '-', frontend.ExpVar(p.lexer.lineno, p[1]), frontend.ExpIntConst(p.lexer.lineno, 1)))
+    p[0] = frontend.StmtAssVar(p.lexer.lineno, frontend.LhsVar(p.lexer.lineno, p[1]), frontend.ExpBinOp(p.lexer.lineno, '-', frontend.ExpVar(p.lexer.lineno, p[1]), frontend.ExpIntConst(p.lexer.lineno, 1)))
 
 def p_stmt_return(p):
     """stmt : return exp semi"""
@@ -118,18 +122,45 @@ def p_stmt_while(p):
     """stmt : while lparen exp rparen stmt"""
     p[0] = frontend.StmtWhile(p.lexer.lineno, p[3], p[5])
 
+def p_stmt_foreach(p):
+    """stmt : for lparen simple_type id colon id rparen stmt"""
+    ln = p.lexer.lineno
+    p[0] = frontend.StmtBlock(ln, [
+        frontend.StmtDecl(ln, frontend.types.TYPE_INT, '$idx'),
+        frontend.StmtWhile(ln,
+            frontend.ExpBinOp(ln, '<', frontend.ExpVar(ln, '$idx'), frontend.ExpAttr(ln, p[6], 'length')),
+            frontend.StmtBlock(ln, [
+                frontend.StmtDeclInit(ln, p[3], p[4], frontend.ExpArray(ln, p[6], frontend.ExpVar(ln, '$idx'))),
+                p[8],
+                frontend.StmtAssVar(ln, frontend.LhsVar(ln, '$idx'), frontend.ExpBinOp(ln, '+', frontend.ExpVar(ln, '$idx'), frontend.ExpIntConst(ln, 1)))
+            ])
+        )
+    ])
+
 def p_stmt_exp(p):
     """stmt : exp semi"""
     p[0] = frontend.StmtExp(p.lexer.lineno, p[1])
 
 
-def p_type(p):
-    """type : id"""
+def p_simple_type(p):
+    """simple_type : id"""
     try:
         p[0] = frontend.Type.get_by_name(p[1])
     except errors.InvalidTypeError as ex:
         ex.line = p.lexer.lineno
         raise ex
+
+def p_type_array(p):
+    """type : id lbracket rbracket"""
+    try:
+        p[0] = frontend.Type.get_by_name(p[1]).array_type
+    except errors.InvalidTypeError as ex:
+        ex.line = p.lexer.lineno
+        raise ex
+
+def p_type(p):
+    """type : simple_type"""
+    p[0] = p[1]
 
 
 def p_exps(p):
@@ -185,6 +216,18 @@ def p_exp_boolconst(p):
 def p_exp_fun(p):
     """exp : id lparen exps rparen"""
     p[0] = frontend.ExpFun(p.lexer.lineno, p[1], p[3])
+
+def p_exp_array(p):
+    """exp : id lbracket exp rbracket"""
+    p[0] = frontend.ExpArray(p.lexer.lineno, p[1], p[3])
+
+def p_exp_attr(p):
+    """exp : id dot id"""
+    p[0] = frontend.ExpAttr(p.lexer.lineno, p[1], p[3])
+
+def p_exp_new(p):
+    """exp : new simple_type lbracket exp rbracket"""
+    p[0] = frontend.ExpNewArray(p.lexer.lineno, p[2], p[4])
 
 def p_exp_paren(p):
     """exp : lparen exp rparen"""

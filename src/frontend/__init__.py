@@ -190,6 +190,66 @@ class ExpFun(Exp):
         return self
 
 
+@dataclass
+class ExpArray(Exp):
+    id: str
+    idx: Exp
+
+    @property
+    def called_functions(self):
+        return self.idx.called_functions
+
+    def __str__(self):
+        return f'{self.id}[{self.idx}]'
+
+    def check(self, fenv, venv):
+        self.idx = self.idx.check(fenv, venv)
+        try:
+            self.type = venv[self.id].element_type
+        except KeyError:
+            raise errors.UndefinedVariableError(self.lineno, self.id)
+        return self
+
+
+@dataclass
+class ExpAttr(Exp):
+    id: str
+    attr: str
+
+    def __str__(self):
+        return f'{self.id}.{self.attr}'
+
+    def check(self, fenv, venv):
+        try:
+            vartype = venv[self.id]
+        except KeyError:
+            raise errors.UndefinedVariableError(self.lineno, self.id)
+        if vartype.is_array_type and self.attr == 'length':
+            self.type = TYPE_INT
+            self.array_type = vartype
+        else:
+            raise errors.InvalidAttributeError(self.lineno, vartype, self.attr)
+        return self
+
+
+@dataclass
+class ExpNewArray(Exp):
+    elem_type: Type
+    len: Exp
+
+    def __str__(self):
+        return f'new {self.elem_type}[{self.len}]'
+
+    @property
+    def called_functions(self):
+        return self.len.called_functions
+
+    def check(self, fenv, venv):
+        self.len = self.len.check(fenv, venv)
+        self.type = self.elem_type.array_type
+        return self
+
+
 # -------- statements --------
 
 def as_block(s):
@@ -207,9 +267,15 @@ def as_block(s):
 class Lhs(Node):
     type = None
 
-    def check(self, venv):
+    def check(self, fenv, venv):
         """checks corectness of LHS"""
         return self
+
+    @property
+    def called_functions(self):
+        """returns a set of ids of functions called from this expression"""
+        return set()
+
 
 @dataclass
 class LhsVar(Lhs):
@@ -218,9 +284,30 @@ class LhsVar(Lhs):
     def __str__(self):
         return str(self.id)
 
-    def check(self, venv):
+    def check(self, fenv, venv):
         try:
             self.type = venv[self.id]
+        except KeyError:
+            raise errors.UndefinedVariableError(self.lineno, self.id)
+        return self
+
+
+@dataclass
+class LhsArray(Lhs):
+    id: str
+    idx: Exp
+
+    def __str__(self):
+        return f'{self.id}[{self.idx}]'
+
+    @property
+    def called_functions(self):
+        return self.idx.called_functions
+
+    def check(self, fenv, venv):
+        self.idx = self.idx.check(fenv, venv)
+        try:
+            self.type = venv[self.id].element_type
         except KeyError:
             raise errors.UndefinedVariableError(self.lineno, self.id)
         return self
@@ -302,10 +389,24 @@ class StmtAss(Stmt):
 
     def check(self, fenv, venv):
         self.exp = self.exp.check(fenv, venv)
-        self.lhs = self.lhs.check(venv)
+        self.lhs = self.lhs.check(fenv, venv)
         if self.lhs.type != self.exp.type:
             raise errors.TypeMismatchError(self.lineno)
         return self, venv
+
+
+@dataclass
+class StmtAssVar(StmtAss):
+    pass
+
+
+@dataclass
+class StmtAssArray(StmtAss):
+    @property
+    def called_functions(self):
+        fs = super().called_functions
+        fs.update(self.lhs.called_functions)
+        return fs
 
 
 @dataclass

@@ -15,9 +15,9 @@ def optimize_function(f: llvm.TopDef):
         dead = {}
         live = {}
         for s in b.stmts:
-            if isinstance(s, llvm.StmtLoad) and s.addr not in dead:
+            if isinstance(s, llvm.StmtLoad) and not s.noopt and s.addr not in dead:
                 live[s.addr] = s.type
-            elif isinstance(s, llvm.StmtStore):
+            elif isinstance(s, llvm.StmtStore) and not s.noopt:
                 dead[s.addr] = s.type
         return live
 
@@ -55,15 +55,15 @@ def optimize_function(f: llvm.TopDef):
         nstmts = []
         pm = phi_map[b]
         for s in b.stmts:
-            if isinstance(s, llvm.StmtStore):
+            if isinstance(s, llvm.StmtStore) and not s.noopt:
                 pm[s.addr] = fresh_loc(s.addr)
                 nstmts.append(StmtAss(pm[s.addr], s.val))
             elif isinstance(s, StmtLocalPhi):
                 pm[s.var] = fresh_loc(s.var)
                 nstmts.append(StmtLocalPhi(pm[s.var], s.type, s.vals))
-            elif isinstance(s, llvm.StmtLoad):
+            elif isinstance(s, llvm.StmtLoad) and not s.noopt:
                 nstmts.append(StmtAss(s.var, pm[s.addr]))
-            elif isinstance(s, llvm.StmtAlloc):
+            elif isinstance(s, llvm.StmtAlloc) and not s.noopt:
                 pass
             else:
                 nstmts.append(s)
@@ -111,6 +111,14 @@ def optimize_function(f: llvm.TopDef):
                 s.cond = get_val(s.cond)
             elif isinstance(s, llvm.StmtPhi):
                 s.vals = [(get_val(v), lbl) for v, lbl in s.vals]
+            elif isinstance(s, llvm.StmtLoad):
+                s.addr = get_val(s.addr)
+            elif isinstance(s, llvm.StmtStore):
+                s.val = get_val(s.val)
+                s.addr = get_val(s.addr)
+            elif isinstance(s, llvm.StmtGetElementPtr):
+                s.addr = get_val(s.addr)
+                s.idx = [(t, get_val(v)) for t, v in s.idx]
 
     while True:
         for b in f.blocks:  # replace trivial phis with assignments

@@ -1,7 +1,7 @@
 import frontend
 import frontend.types as ft
 import backend.llvm as llvm
-from backend.llvm.types import TYPE_VOID, TYPE_I1, TYPE_I8P, TYPE_I64
+from backend.llvm.types import TYPE_VOID, TYPE_I1, TYPE_I8P, TYPE_I32, TYPE_I64, TYPE_I1A, TYPE_I64A, TYPE_I8PA
 from itertools import count
 from functools import wraps
 
@@ -66,8 +66,11 @@ def fresh_global():
 
 TYPES = {
     ft.TYPE_INT: TYPE_I64,
+    ft.TYPE_INT_ARRAY: TYPE_I64A,
     ft.TYPE_BOOL:  TYPE_I1,
+    ft.TYPE_BOOL_ARRAY: TYPE_I1A,
     ft.TYPE_STRING: TYPE_I8P,
+    ft.TYPE_STRING_ARRAY: TYPE_I8PA,
     ft.TYPE_VOID: TYPE_VOID,
 }
 
@@ -135,7 +138,7 @@ def translate(self, venv):
 def translate(self, venv):
     a = venv[self.id]
     v = fresh_temp()
-    builder.add_stmt(llvm.StmtLoad(v, TYPES[self.type], a))
+    builder.add_stmt(llvm.StmtLoad(v, TYPES[self.type], a, noopt=self.type.is_array_type))
     return v
 
 @translator(frontend.ExpIntConst)
@@ -150,7 +153,7 @@ def translate(self, venv):
         strlits[self.val] = llvm.GlobalDef(gaddr, lit.type, lit)
     g = strlits[self.val]
     v = fresh_temp()
-    builder.add_stmt(llvm.StmtGetGlobal(v, g.type, g.addr))
+    builder.add_stmt(llvm.StmtGetElementPtr(v, g.type, g.addr, [(TYPE_I64, 0), (TYPE_I64, 0)]))
     return v
 
 @translator(frontend.ExpBoolConst)
@@ -170,10 +173,62 @@ def translate(self, venv):
     builder.add_stmt(llvm.StmtCall(v, TYPES[self.type], self.fid, args))
     return v
 
+@translator(frontend.ExpArray)
+def translate(self, venv):
+    idxv = self.idx.translate(venv)
+    varrp = fresh_temp()  # pointer to array inside struct
+    builder.add_stmt(llvm.StmtGetElementPtr(varrp, TYPES[self.type.array_type], venv[self.id], [(TYPE_I64, 0), (TYPE_I32, 1)]))
+    varr = fresh_temp()  # actual array
+    builder.add_stmt(llvm.StmtLoad(varr, TYPES[self.type] + '*', varrp, noopt=True))
+    velem = fresh_temp()  # pointer to element
+    builder.add_stmt(llvm.StmtGetElementPtr(velem, TYPES[self.type], varr, [(TYPE_I64, idxv)]))
+    v = fresh_temp()
+    builder.add_stmt(llvm.StmtLoad(v, TYPES[self.type], velem, noopt=True))
+    return v
+
+@translator(frontend.ExpAttr)
+def translate(self, venv):
+    if self.attr == 'length':
+        v = fresh_temp()
+        builder.add_stmt(llvm.StmtGetElementPtr(v, TYPES[self.array_type], venv[self.id], [(TYPE_I64, 0), (TYPE_I32, 0)]))
+        v2 = fresh_temp()
+        builder.add_stmt(llvm.StmtLoad(v2, TYPES[self.type], v, noopt=True))
+        return v2
+    else:
+        assert False
+
+@translator(frontend.ExpNewArray)
+def translate(self, venv):
+    lenv = self.len.translate(venv)
+    velems = fresh_temp()  # allocate memory for elements
+    builder.add_stmt(llvm.StmtAllocArray(velems, TYPES[self.elem_type], lenv))
+    vstruct = fresh_temp()  # allocate memory for array struct (len, elements)
+    builder.add_stmt(llvm.StmtAlloc(vstruct, TYPES[self.type], noopt=True))
+    vstructelems = fresh_temp()  # store pointer to elements in struct
+    builder.add_stmt(llvm.StmtGetElementPtr(vstructelems, TYPES[self.type], vstruct, [(TYPE_I64, 0), (TYPE_I32, 1)]))
+    builder.add_stmt(llvm.StmtStore(TYPES[self.elem_type] + '*', velems, vstructelems, noopt=True))
+    vstructlen = fresh_temp()  # store length value in struct
+    builder.add_stmt(llvm.StmtGetElementPtr(vstructlen, TYPES[self.type], vstruct, [(TYPE_I64, 0), (TYPE_I32, 0)]))
+    builder.add_stmt(llvm.StmtStore(TYPE_I64, lenv, vstructlen, noopt=True))
+    v = fresh_temp()
+    builder.add_stmt(llvm.StmtLoad(v, TYPES[self.type], vstruct, noopt=True))
+    return v
+
 
 @translator(frontend.LhsVar)
 def translate(self, venv):
     return venv[self.id]
+
+@translator(frontend.LhsArray)
+def translate(self, venv):
+    idxv = self.idx.translate(venv)
+    varrp = fresh_temp()
+    builder.add_stmt(llvm.StmtGetElementPtr(varrp, TYPES[self.type.array_type], venv[self.id], [(TYPE_I64, 0), (TYPE_I32, 1)]))
+    varr = fresh_temp()
+    builder.add_stmt(llvm.StmtLoad(varr, TYPES[self.type] + '*', varrp, noopt=True))
+    velem = fresh_temp()
+    builder.add_stmt(llvm.StmtGetElementPtr(velem, TYPES[self.type], varr, [(TYPE_I64, idxv)]))
+    return velem
 
 
 @translator(frontend.StmtSkip)
@@ -189,16 +244,15 @@ def translate(self, venv):
             strlits[''] = llvm.GlobalDef(gaddr, lit.type, lit)
         g = strlits['']
         v = fresh_temp()
-        builder.add_stmt(llvm.StmtGetGlobal(v, g.type, g.addr))
+        builder.add_stmt(llvm.StmtGetElementPtr(v, g.type, g.addr, [(TYPE_I64, 0), (TYPE_I64, 0)]))
     elif self.type in [ft.TYPE_BOOL, ft.TYPE_INT]:
         v = 0
-    else:
-        assert False
     nvenv = venv.copy()
     a = fresh_loc()
     nvenv[self.id] = a
-    builder.add_stmt(llvm.StmtAlloc(a, TYPES[self.type]))
-    builder.add_stmt(llvm.StmtStore(TYPES[self.type], v, a))
+    builder.add_stmt(llvm.StmtAlloc(a, TYPES[self.type], noopt=self.type.is_array_type))
+    if not self.type.is_array_type:
+        builder.add_stmt(llvm.StmtStore(TYPES[self.type], v, a))
     return nvenv
 
 @translator(frontend.StmtDeclInit)
@@ -207,15 +261,15 @@ def translate(self, venv):
     nvenv = venv.copy()
     a = fresh_loc()
     nvenv[self.id] = a
-    builder.add_stmt(llvm.StmtAlloc(a, TYPES[self.type]))
-    builder.add_stmt(llvm.StmtStore(TYPES[self.exp.type], e1v, a))
+    builder.add_stmt(llvm.StmtAlloc(a, TYPES[self.type], noopt=self.type.is_array_type))
+    builder.add_stmt(llvm.StmtStore(TYPES[self.exp.type], e1v, a, noopt=self.type.is_array_type))
     return nvenv
 
 @translator(frontend.StmtAss)
 def translate(self, venv):
     a = self.lhs.translate(venv)
     e1v = self.exp.translate(venv)
-    builder.add_stmt(llvm.StmtStore(TYPES[self.exp.type], e1v, a))
+    builder.add_stmt(llvm.StmtStore(TYPES[self.exp.type], e1v, a, noopt=isinstance(self, frontend.StmtAssArray) or self.lhs.type.is_array_type))
     return venv
 
 @translator(frontend.StmtReturn)
@@ -320,8 +374,8 @@ def translate(self):
         arg_type = TYPES[arg.type]
         venv[arg.id] = arg_loc
         builder.add_stmt([
-            llvm.StmtAlloc(arg_loc, arg_type),
-            llvm.StmtStore(arg_type, arg_tmp, arg_loc),
+            llvm.StmtAlloc(arg_loc, arg_type, noopt=arg.type.is_array_type),
+            llvm.StmtStore(arg_type, arg_tmp, arg_loc, noopt=arg.type.is_array_type),
         ])
     self.block.translate(venv)
     t = TYPES[self.type]

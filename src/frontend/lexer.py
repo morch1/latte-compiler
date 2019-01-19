@@ -1,7 +1,7 @@
 import ply.lex as lex
 import errors
 
-reserved = ("true", "false", "return", "if", "else", "while",)
+reserved = ("true", "false", "return", "if", "else", "while", "for", "new")
 
 tokens = reserved + (
     # literals
@@ -14,7 +14,8 @@ tokens = reserved + (
     "equals", "plusplus", "minusminus",
     # delimeters
     "lparen", "rparen", "lbrace", "rbrace",
-    "semi", "comma",
+    "semi", "comma", "lbracket", "rbracket",
+    "dot", "colon"
 )
 
 
@@ -56,8 +57,12 @@ t_lparen = r'\('
 t_rparen = r'\)'
 t_lbrace = r'\{'
 t_rbrace = r'\}'
+t_lbracket = r'\['
+t_rbracket = r'\]'
 t_semi = r'\;'
 t_comma = r'\,'
+t_dot = r'\.'
+t_colon = r'\:'
 
 def t_id(t):
     r"""[a-zA-Z_]\w*"""

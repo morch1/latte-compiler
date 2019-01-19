@@ -73,3 +73,8 @@ class MissingReturnError(CompilerError):
 # noinspection PyShadowingBuiltins
 class NotImplementedError(CompilerError):
     msg = 'not implemented'
+
+class InvalidAttributeError(CompilerError):
+    def __init__(self, line, t, attr):
+        super().__init__(line)
+        self.msg = f'invalid attribute of type {t}: {attr}'
