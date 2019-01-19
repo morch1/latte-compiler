@@ -276,6 +276,15 @@ def translate(self, venv):
     builder.new_block(lfalse)
     return venv
 
+@translator(frontend.StmtWhileTrue)
+def translate(self, venv):
+    lloop = fresh_label()
+    builder.add_stmt(llvm.StmtJump(lloop))
+    builder.new_block(lloop)
+    self.stmt.translate(venv)
+    builder.add_stmt(llvm.StmtJump(lloop))
+    return venv
+
 @translator(frontend.StmtExp)
 def translate(self, venv):
     self.exp.translate(venv)

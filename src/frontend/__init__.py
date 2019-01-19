@@ -405,15 +405,33 @@ class StmtWhile(StmtIf):
     def __str__(self):
         return f'while {self.cond} {self.stmt}'
 
-    @property
-    def returns(self):
-        return isinstance(self.cond, ExpBoolConst) and self.cond.val  # while (true)
-
     def check(self, fenv, venv):
         super(StmtWhile, self).check(fenv, venv)
-        if isinstance(self.cond, ExpBoolConst) and not self.cond.val:
-            return StmtSkip(self.lineno), venv
+        if isinstance(self.cond, ExpBoolConst):
+            if self.cond.val:
+                return StmtWhileTrue(self.lineno, self.stmt), venv
+            else:
+                return StmtSkip(self.lineno), venv
         return self, venv
+
+
+@dataclass
+class StmtWhileTrue(Stmt):
+    stmt: Stmt
+
+    def __str__(self):
+        return f'while (true) {self.stmt}'
+
+    @property
+    def called_functions(self):
+        return self.stmt.called_functions
+
+    @property
+    def returns(self):
+        return True
+
+    def check(self, fenv, venv):
+        self.stmt, _ = self.stmt.check(fenv, venv)
 
 
 @dataclass
