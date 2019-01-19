@@ -407,7 +407,7 @@ class StmtWhile(StmtIf):
 
     @property
     def returns(self):
-        return isinstance(self.cond, ExpBoolConst) and self.cond.val and self.stmt.returns
+        return isinstance(self.cond, ExpBoolConst) and self.cond.val  # while (true)
 
     def check(self, fenv, venv):
         super(StmtWhile, self).check(fenv, venv)
