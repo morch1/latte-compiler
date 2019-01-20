@@ -11,8 +11,8 @@ void printString(char* s) {
     printf("%s\n", s);
 }
 
-void printInt(int i) {
-    printf("%d\n", i);
+void printInt(long i) {
+    printf("%ld\n", i);
 }
 
 char* readString() {
@@ -25,9 +25,9 @@ char* readString() {
     return str;
 }
 
-int readInt() {
-    int i;
-    scanf("%d", &i);
+long readInt() {
+    long i;
+    scanf("%ld", &i);
     readString();
     return i;
 }
