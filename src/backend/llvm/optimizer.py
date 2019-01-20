@@ -111,6 +111,8 @@ def optimize_function(f: llvm.TopDef):
                 s.cond = get_val(s.cond)
             elif isinstance(s, llvm.StmtPhi):
                 s.vals = [(get_val(v), lbl) for v, lbl in s.vals]
+            elif isinstance(s, llvm.StmtAllocArray):
+                s.count = get_val(s.count)
             elif isinstance(s, llvm.StmtLoad):
                 s.addr = get_val(s.addr)
             elif isinstance(s, llvm.StmtStore):

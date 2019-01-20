@@ -305,12 +305,13 @@ def translate(self, venv):
     builder.add_stmt(llvm.StmtCondJump(cv, ltrue, lfalse))
     builder.new_block(ltrue)
     self.stmt.translate(venv)
-    if not self.returns:
+    if not self.stmt.returns:
         builder.add_stmt(llvm.StmtJump(lend))
     builder.new_block(lfalse)
     self.stmt2.translate(venv)
-    if not self.returns:
+    if not self.stmt2.returns:
         builder.add_stmt(llvm.StmtJump(lend))
+    if not self.returns:
         builder.new_block(lend)
     return venv
 
